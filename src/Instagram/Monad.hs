@@ -4,7 +4,8 @@ module Instagram.Monad (
   ,runInstagramT
   ,getCreds
   ,getHost
-  ,getSimpleQueryRequest
+  ,getSimpleQueryPostRequest
+  ,getSimpleQueryURL
   ,getManager
   ,runResourceInIs
   ,mapInstagramT
@@ -29,6 +30,7 @@ import qualified Data.Conduit as C
 import qualified Network.HTTP.Conduit as H
 import qualified Network.HTTP.Types as HT
 import Data.ByteString (ByteString)
+import qualified Data.ByteString as BS
 
 newtype InstagramT m a = Is { unIs :: ReaderT IsData m a }
     deriving ( Functor, Applicative, Alternative, Monad
@@ -65,16 +67,22 @@ getCreds = isCreds `liftM` Is ask
 getHost :: Monad m => InstagramT m ByteString
 getHost = isHost `liftM` Is ask
 
-getSimpleQueryRequest :: Monad m => ByteString -> HT.SimpleQuery -> InstagramT m (H.Request a)
-getSimpleQueryRequest path query=do
+getSimpleQueryPostRequest :: Monad m => ByteString -> HT.SimpleQuery -> InstagramT m (H.Request a)
+getSimpleQueryPostRequest path query=do
   host<-getHost
   return $ H.def {
                      H.secure=True
                      , H.host = host
                      , H.port = 443
                      , H.path = path
-                     ,H.queryString=HT.renderSimpleQuery True query
+                     , H.method=HT.methodPost
+                     , H.requestBody=H.RequestBodyBS $ HT.renderSimpleQuery False query
                 }
+
+getSimpleQueryURL :: Monad m => ByteString -> HT.SimpleQuery -> InstagramT m ByteString 
+getSimpleQueryURL path query=do
+  host<-getHost
+  return $ BS.concat ["https://",host,path,HT.renderSimpleQuery True query]
 
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager

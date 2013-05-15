@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 
 module Instagram.Auth (
+  RedirectUrl,
   getUserAccessTokenURL1,
   getUserAccessTokenURL2
 ) where
@@ -22,10 +23,11 @@ import Data.Conduit
 type RedirectUrl = Text
 
 getUserAccessTokenURL1 :: Monad m => RedirectUrl -> [Scope]
-                        -> InstagramT m (H.Request a)
+                        -> InstagramT m Text
 getUserAccessTokenURL1 url scopes=  do
   cid<-liftM clientIDBS getCreds
-  getSimpleQueryRequest "/oauth/authorize/" $ buildQuery cid ++ buildScopes scopes
+  bsurl<-getSimpleQueryURL "/oauth/authorize/" $ buildQuery cid ++ buildScopes scopes
+  return $ TE.decodeUtf8 bsurl
   where
     buildQuery :: BS.ByteString -> HT.SimpleQuery
     buildQuery cid=[("client_id",cid),("redirect_uri",TE.encodeUtf8 url),("response_type","code")]
@@ -34,11 +36,11 @@ getUserAccessTokenURL1 url scopes=  do
     buildScopes l =[("scope",BS.intercalate "+" $ map (TE.encodeUtf8 . toLower . pack . show) l)]
                 
 getUserAccessTokenURL2 :: (MonadBaseControl IO m, MonadResource m) =>
-  RedirectUrl -> BS.ByteString -> InstagramT m OAuthToken
+  RedirectUrl -> Text -> InstagramT m OAuthToken
 getUserAccessTokenURL2 url code= do
   cid<-liftM clientIDBS getCreds
   csecret<-liftM clientSecretBS getCreds
-  req<-getSimpleQueryRequest "/oauth/access_token" $ buildQuery cid csecret
+  req<-getSimpleQueryPostRequest "/oauth/access_token" $ buildQuery cid csecret
   mgr<-getManager
   res <- H.http req mgr
   value<-H.responseBody res $$+- sinkParser json
@@ -49,5 +51,5 @@ getUserAccessTokenURL2 url code= do
      buildQuery :: BS.ByteString ->BS.ByteString -> HT.SimpleQuery
      buildQuery cid csecret=[("client_id",cid),("client_secret",csecret)
         ,("redirect_uri",TE.encodeUtf8 url),("grant_type","authorization_code"),
-        ("code",code)]
+        ("code",TE.encodeUtf8 code)]
      
