@@ -1,11 +1,15 @@
+-- | the public API for Instagram access
 module Instagram
   (
-  RedirectUrl,
-  getUserAccessTokenURL1,
-  getUserAccessTokenURL2
-  ,InstagramT
+  -- generic types and functions
+  InstagramT
   ,runInstagramT
   ,runResourceInIs
+
+  -- authentication
+  ,RedirectUri
+  ,getUserAccessTokenURL1
+  ,getUserAccessTokenURL2
   ,Credentials(..)
   ,OAuthToken
   ,AccessToken

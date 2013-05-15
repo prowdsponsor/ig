@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances, TypeFamilies, FlexibleContexts #-}
+-- | the instagram monad stack and helper functions
 module Instagram.Monad (
   InstagramT
   ,runInstagramT
@@ -32,6 +33,8 @@ import qualified Network.HTTP.Types as HT
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 
+-- | the instagram monad transformer
+-- this encapsulates the data necessary to pass the app credentials, etc
 newtype InstagramT m a = Is { unIs :: ReaderT IsData m a }
     deriving ( Functor, Applicative, Alternative, Monad
              , MonadFix, MonadPlus, MonadIO, MonadTrans
@@ -54,20 +57,23 @@ instance MonadBaseControl b m => MonadBaseControl b (InstagramT m) where
 -- your credentials.
 runInstagramT :: Credentials -- ^ Your app's credentials.
              -> H.Manager -- ^ Connection manager (see 'H.withManager').
-             -> InstagramT m a
-             -> m a
+             -> InstagramT m a -- ^ the action to run
+             -> m a -- ^ the result
 runInstagramT creds manager (Is act) =
-    runReaderT act (IsData creds manager "api.instagram.com")
+    runReaderT act (IsData creds manager "api.instagram.com") -- potentially we could open to other hosts if there were test endpoints, etc...
     
 -- | Get the user's credentials.
 getCreds :: Monad m => InstagramT m Credentials
 getCreds = isCreds `liftM` Is ask
 
--- | Get the base url
+-- | Get the instagram host
 getHost :: Monad m => InstagramT m ByteString
 getHost = isHost `liftM` Is ask
 
-getSimpleQueryPostRequest :: Monad m => ByteString -> HT.SimpleQuery -> InstagramT m (H.Request a)
+-- | send a simple post to Instagram
+getSimpleQueryPostRequest :: Monad m => ByteString -- ^ the url path
+  -> HT.SimpleQuery -- ^ the query parameters
+  -> InstagramT m (H.Request a) -- ^ the properly configured request
 getSimpleQueryPostRequest path query=do
   host<-getHost
   return $ H.def {
@@ -79,7 +85,10 @@ getSimpleQueryPostRequest path query=do
                      , H.requestBody=H.RequestBodyBS $ HT.renderSimpleQuery False query
                 }
 
-getSimpleQueryURL :: Monad m => ByteString -> HT.SimpleQuery -> InstagramT m ByteString 
+-- | build a URL for a get operation
+getSimpleQueryURL :: Monad m => ByteString -- ^ the url path
+  -> HT.SimpleQuery -- ^ the query parameters 
+  -> InstagramT m ByteString  -- ^ the URL
 getSimpleQueryURL path query=do
   host<-getHost
   return $ BS.concat ["https://",host,path,HT.renderSimpleQuery True query]
@@ -98,10 +107,11 @@ runResourceInIs (Is inner) = Is $ ask >>= lift . C.runResourceT . runReaderT inn
 mapInstagramT :: (m a -> n b) -> InstagramT m a -> InstagramT n b
 mapInstagramT f = Is . mapReaderT f . unIs    
     
+-- | the data kept through the computations
 data IsData = IsData {
-        isCreds::Credentials,
-        isManager::H.Manager,
-        isHost:: ByteString
+        isCreds::Credentials -- ^ app credentials
+        ,isManager::H.Manager -- ^ HTTP connection manager
+        ,isHost:: ByteString -- ^ host name
         } 
         deriving (Typeable)
         
