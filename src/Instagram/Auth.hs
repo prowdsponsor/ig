@@ -10,14 +10,11 @@ import Instagram.Monad
 import Instagram.Types
 
 import Data.Text hiding (map)
-import qualified Network.HTTP.Conduit as H
 import Control.Monad (liftM)
 import qualified Data.ByteString as BS (ByteString,intercalate)
 import qualified Data.Text.Encoding as TE
 import qualified Network.HTTP.Types as HT
-import Data.Aeson (json,fromJSON,Result(..))
 
-import Data.Conduit.Attoparsec (sinkParser)
 import Data.Conduit
 
 -- | the URI to redirect the user after she accepts/refuses to authorize the app
@@ -48,17 +45,13 @@ getUserAccessTokenURL2 :: (MonadBaseControl IO m, MonadResource m) =>
 getUserAccessTokenURL2 url code= do
   cid<-liftM clientIDBS getCreds
   csecret<-liftM clientSecretBS getCreds
-  req<-getSimpleQueryPostRequest "/oauth/access_token" $ buildQuery cid csecret
-  mgr<-getManager
-  res <- H.http req mgr
-  value<-H.responseBody res $$+- sinkParser json
-  case fromJSON value of
-    Success ot->return ot
-    Error err->fail err
+  getSimpleQueryPostRequest "/oauth/access_token" (buildQuery cid csecret) >>= getJSONResponse
   where
     -- | build query parameters, including the secret
     buildQuery :: BS.ByteString ->BS.ByteString -> HT.SimpleQuery
-    buildQuery cid csecret=[("client_id",cid),("client_secret",csecret)
+    buildQuery cid csecret=[("client_id",cid),("client_secret",csecret) 
         ,("redirect_uri",TE.encodeUtf8 url),("grant_type","authorization_code"),
         ("code",TE.encodeUtf8 code)]
+     
+     
      
