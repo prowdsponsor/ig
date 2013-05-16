@@ -49,7 +49,7 @@ getUserAccessTokenURL2 url code= do
   where
     -- | build query parameters, including the secret
     buildQuery :: BS.ByteString ->BS.ByteString -> HT.SimpleQuery
-    buildQuery cid csecret=[("client_id",cid),("client_secret",csecret)
+    buildQuery cid csecret=[("client_id",cid),("client_secret",csecret) 
         ,("redirect_uri",TE.encodeUtf8 url),("grant_type","authorization_code"),
         ("code",TE.encodeUtf8 code)]
      

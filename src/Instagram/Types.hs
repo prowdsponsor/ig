@@ -93,7 +93,29 @@ instance FromJSON User where
 data Scope=Basic | Comments | Relationships | Likes
         deriving (Show,Read,Eq,Ord,Enum,Bounded,Typeable)
 
-data ISException = JSONException String
+-- | an error returned to us by Instagram
+data ISError = ISError {
+  iseCode :: Int
+  ,iseType :: Text
+  ,iseMessage :: Text
+  }
+  deriving (Show,Read,Eq,Ord,Typeable)
+  
+ -- | to json as per Instagram format    
+instance ToJSON ISError  where
+    toJSON e=object ["code" .= iseCode e, "error_type" .= iseType e , "error_message" .= iseMessage e] 
+
+-- | from json as per Instagram format
+instance FromJSON ISError where
+    parseJSON (Object v) =ISError <$>
+                         v .: "code" <*>
+                         v .: "error_type" <*>
+                         v .: "error_message"
+    parseJSON _= mzero
+
+-- | an exception that a call to instagram may throw
+data ISException = JSONException String -- ^ JSON parsingError
+  | ISAppException ISError -- ^ application exception
   deriving (Show,Typeable)
   
 instance Exception ISException 

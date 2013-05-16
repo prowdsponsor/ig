@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances, TypeFamilies, FlexibleContexts, RankNTypes #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances, TypeFamilies, FlexibleContexts, RankNTypes, PatternGuards #-}
 -- | the instagram monad stack and helper functions
 module Instagram.Monad (
   InstagramT
@@ -15,7 +15,7 @@ module Instagram.Monad (
 
 import Instagram.Types
 
-import Control.Applicative (Applicative, Alternative)
+import Control.Applicative 
 import Control.Monad (MonadPlus, liftM)
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Fix (MonadFix)
@@ -97,29 +97,34 @@ getSimpleQueryURL path query=do
   host<-getHost
   return $ BS.concat ["https://",host,path,HT.renderSimpleQuery True query]
 
+-- | get a JSON response from a request to Instagram
 getJSONResponse :: forall (m :: * -> *) v.
                                  (MonadBaseControl IO m, C.MonadResource m,FromJSON v) =>
                                  H.Request (InstagramT m)
                                  -> InstagramT
                                       m v
 getJSONResponse req=do
+  -- we check the status ourselves
+  let req' = req { H.checkStatus = \_ _ _ -> Nothing }
   mgr<-getManager
-  res<-H.http req mgr
---  let status = H.responseStatus res
---      headers = H.responseHeaders res
---      cookies = H.responseCookieJar res
-  --case isOkay status of
-  --  True ->do
-  value<-H.responseBody res C.$$+- sinkParser json
-  case fromJSON value of
-    Success ot->return ot
-    Error err->throw $ JSONException err
-    
-    -- TODO parse content of X-Response-Body-Start header
-    -- {\"code\": 400, \"error_type\": \"OAuthException\", \"error_message\": \"You must provide a client_id\"}")]
---    False-> do
---      let statusexc = H.StatusCodeException status headers cookies
---      fail ""
+  res<-H.http req' mgr
+  let status = H.responseStatus res
+      headers = H.responseHeaders res
+      cookies = H.responseCookieJar res
+  value<-H.responseBody res C.$$+- sinkParser json    
+  if isOkay status
+    then
+      -- | parse response as the expected value
+      case fromJSON value of
+        Success ot->return ot
+        Error err->throw $ JSONException err
+    else 
+      -- | parse response as an error
+      case fromJSON value of
+        Success ise-> throw $ ISAppException ise
+        _ -> throw $ H.StatusCodeException status headers cookies
+            
+
       
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager
@@ -144,7 +149,7 @@ data IsData = IsData {
         deriving (Typeable)
         
 -- | @True@ if the the 'Status' is ok (i.e. @2XX@).
---isOkay :: HT.Status -> Bool
---isOkay status =
---  let sc = HT.statusCode status
---  in 200 <= sc && sc < 300
+isOkay :: HT.Status -> Bool
+isOkay status =
+  let sc = HT.statusCode status
+  in 200 <= sc && sc < 300
