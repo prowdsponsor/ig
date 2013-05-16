@@ -7,6 +7,7 @@ module Instagram.Types (
   ,AccessToken
   ,User
   ,Scope(..)
+  ,ISException(..)
 )where
 
 import Control.Applicative
@@ -18,6 +19,7 @@ import Data.Aeson
 import Control.Monad (mzero)
 
 import qualified Data.Text.Encoding as TE
+import Control.Exception.Base (Exception)
 
 -- | the app credentials
 data Credentials = Credentials {
@@ -90,3 +92,8 @@ instance FromJSON User where
 -- | the scopes of the authentication
 data Scope=Basic | Comments | Relationships | Likes
         deriving (Show,Read,Eq,Ord,Enum,Bounded,Typeable)
+
+data ISException = JSONException String
+  deriving (Show,Typeable)
+  
+instance Exception ISException 
