@@ -114,14 +114,14 @@ getJSONResponse req=do
   value<-H.responseBody res C.$$+- sinkParser json    
   if isOkay status
     then
-      -- | parse response as the expected value
+      -- parse response as the expected value
       case fromJSON value of
         Success ot->return ot
         Error err->throw $ JSONException err
     else 
-      -- | parse response as an error
+      -- parse response as an error
       case fromJSON value of
-        Success ise-> throw $ ISAppException ise
+        Success ise-> throw $ IGAppException ise
         _ -> throw $ H.StatusCodeException status headers cookies
             
 
