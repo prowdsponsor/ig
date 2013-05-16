@@ -5,6 +5,7 @@ module Instagram
   InstagramT
   ,runInstagramT
   ,runResourceInIs
+  ,ISException
 
   -- authentication
   ,RedirectUri

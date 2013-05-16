@@ -7,6 +7,7 @@ module Instagram.Types (
   ,AccessToken
   ,User
   ,Scope(..)
+  ,ISException(..)
 )where
 
 import Control.Applicative
@@ -18,6 +19,7 @@ import Data.Aeson
 import Control.Monad (mzero)
 
 import qualified Data.Text.Encoding as TE
+import Control.Exception.Base (Exception)
 
 -- | the app credentials
 data Credentials = Credentials {
@@ -90,3 +92,30 @@ instance FromJSON User where
 -- | the scopes of the authentication
 data Scope=Basic | Comments | Relationships | Likes
         deriving (Show,Read,Eq,Ord,Enum,Bounded,Typeable)
+
+-- | an error returned to us by Instagram
+data ISError = ISError {
+  iseCode :: Int
+  ,iseType :: Text
+  ,iseMessage :: Text
+  }
+  deriving (Show,Read,Eq,Ord,Typeable)
+  
+ -- | to json as per Instagram format    
+instance ToJSON ISError  where
+    toJSON e=object ["code" .= iseCode e, "error_type" .= iseType e , "error_message" .= iseMessage e] 
+
+-- | from json as per Instagram format
+instance FromJSON ISError where
+    parseJSON (Object v) =ISError <$>
+                         v .: "code" <*>
+                         v .: "error_type" <*>
+                         v .: "error_message"
+    parseJSON _= mzero
+
+-- | an exception that a call to instagram may throw
+data ISException = JSONException String -- ^ JSON parsingError
+  | ISAppException ISError -- ^ application exception
+  deriving (Show,Typeable)
+  
+instance Exception ISException 
