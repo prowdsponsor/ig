@@ -12,12 +12,23 @@ module Instagram
   ,getUserAccessTokenURL1
   ,getUserAccessTokenURL2
   ,Credentials(..)
-  ,OAuthToken
+  ,OAuthToken(..)
   ,AccessToken
-  ,User
+  ,User(..)
   ,Scope(..)
+  
+  -- data
+  ,Envelope(..)
+  ,Pagination(..)
+  
+  -- user
+  ,RecentParams(..)
+  ,getRecent
+  ,SelfLikedParams(..)
+  ,getSelfLiked
   ) where
 
 import Instagram.Auth
 import Instagram.Monad
 import Instagram.Types
+import Instagram.Users

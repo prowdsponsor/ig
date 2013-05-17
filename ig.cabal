@@ -32,9 +32,7 @@ library
     Instagram
 --  other-modules:
   build-depends:
-      base                 >= 4       && < 5
-    -- -- Copied from fb-0.14.6, may be useful =).
-    -- , lifted-base          >= 0.1     && < 0.3
+     base                 >= 4       && < 5
      , bytestring           >= 0.9     && < 0.11
      , text                 == 0.11.*
      , transformers         >= 0.2     && < 0.4
@@ -42,21 +40,13 @@ library
      , monad-control
      , resourcet
      , conduit              == 1.0.*
-    -- , data-default
      , http-types
      , http-conduit         == 1.9.*
      , attoparsec           == 0.10.*
      , attoparsec-conduit   == 1.0.*
-    -- , unordered-containers
-     , aeson                >= 0.5     && < 0.7
-    -- , base16-bytestring    >= 0.1
-    -- , base64-bytestring    >= 0.1.1
-    -- , time                 >= 1.2     && < 1.5
-    -- , old-locale
-    -- , cereal               == 0.3.*
-    -- , crypto-api           >= 0.11    && < 0.13
-    -- , cryptohash           >= 0.7
-    -- , cryptohash-cryptoapi == 0.1.*
+     , aeson                >= 0.5     && < 0.7,
+     time,
+     data-default
   extensions:
     OverloadedStrings
     DeriveDataTypeable
@@ -72,4 +62,5 @@ library
   other-modules:  
                   Instagram.Types,
                   Instagram.Monad,
-                  Instagram.Auth
+                  Instagram.Auth,
+                  Instagram.Users

@@ -1,13 +1,18 @@
+{-# LANGUAGE TypeSynonymInstances, FlexibleInstances, ScopedTypeVariables #-}
 -- | Types definitions
 module Instagram.Types (
   Credentials(..)
   ,clientIDBS
   ,clientSecretBS
-  ,OAuthToken
-  ,AccessToken
-  ,User
+  ,OAuthToken(..)
+  ,AccessToken(..)
+  ,User(..)
   ,Scope(..)
   ,IGException(..)
+  ,Envelope(..)
+  ,IGError
+  ,Pagination(..)
+  ,Media(..)
 )where
 
 import Control.Applicative
@@ -20,6 +25,8 @@ import Control.Monad (mzero)
 
 import qualified Data.Text.Encoding as TE
 import Control.Exception.Base (Exception)
+import Data.Time.Clock.POSIX (POSIXTime)
+
 
 -- | the app credentials
 data Credentials = Credentials {
@@ -96,8 +103,8 @@ data Scope=Basic | Comments | Relationships | Likes
 -- | an error returned to us by Instagram
 data IGError = IGError {
   igeCode :: Int
-  ,igeType :: Text
-  ,igeMessage :: Text
+  ,igeType :: Maybe Text
+  ,igeMessage :: Maybe Text
   }
   deriving (Show,Read,Eq,Ord,Typeable)
   
@@ -109,8 +116,8 @@ instance ToJSON IGError  where
 instance FromJSON IGError where
     parseJSON (Object v) =IGError <$>
                          v .: "code" <*>
-                         v .: "error_type" <*>
-                         v .: "error_message"
+                         v .:? "error_type" <*>
+                         v .:? "error_message"
     parseJSON _= mzero
 
 -- | an exception that a call to instagram may throw
@@ -119,3 +126,130 @@ data IGException = JSONException String -- ^ JSON parsingError
   deriving (Show,Typeable)
   
 instance Exception IGException 
+
+data Envelope d=Envelope{
+  eMeta :: IGError,
+  eData :: d,
+  ePagination :: Maybe Pagination
+  }
+  deriving (Show,Read,Eq,Ord,Typeable)
+  
+-- | to json as per Instagram format    
+instance (ToJSON d)=>ToJSON (Envelope d)  where
+    toJSON e=object ["meta" .= eMeta e, "data" .= eData e, "pagination" .= ePagination e]  
+  
+-- | from json as per Instagram format
+instance (FromJSON d)=>FromJSON (Envelope d) where
+    parseJSON (Object v) =Envelope <$>
+                         v .: "meta" <*>
+                         v .: "data" <*>
+                         v .:? "pagination"
+    parseJSON _= mzero
+  
+data Pagination = Pagination {
+   pNextUrl :: Maybe Text
+   ,pNextMaxID :: Maybe Text
+   }
+  deriving (Show,Read,Eq,Ord,Typeable)
+  
+ -- | to json as per Instagram format    
+instance ToJSON Pagination  where
+    toJSON p=object ["next_url" .= pNextUrl p, "next_max_id" .= pNextMaxID p] 
+
+-- | from json as per Instagram format
+instance FromJSON Pagination where
+    parseJSON (Object v) =Pagination <$>
+                         v .:? "next_url" <*>
+                         v .:? "next_max_id"
+    parseJSON _= mzero  
+  
+data Media = Media {
+  mID :: Text
+  ,mCreated :: POSIXTime
+  ,mType :: Text
+  ,mUsers :: [User]
+  ,mFilter :: Text
+  ,mTags :: [Text]
+  }  
+  deriving (Show,Eq,Ord,Typeable)
+  
+-- | to json as per Instagram format    
+instance ToJSON Media  where
+    toJSON m=object ["id" .= mID m,"created_time" .= (toJSON $ show $ round $ mCreated m),"type" .= mType m,"users_in_photo" .= mUsers m, "filter" .= mFilter m,"tags" .= mTags m] 
+
+-- | from json as per Instagram format
+instance FromJSON Media where
+    parseJSON (Object v) =do
+      ct::String<-v .: "created_time"
+      Media <$>
+                         v .: "id" <*>
+                         (pure $ fromIntegral $ read ct) <*>
+                         v .: "type" <*>
+                         v .: "users_in_photo" <*>
+                         v .: "filter" <*>
+                         v .: "tags"
+    parseJSON _= mzero  
+  
+--{
+--        "comments": {
+--            "data": [],
+--            "count": 0
+--        },
+--        "caption": {
+--            "created_time": "1296710352",
+--            "text": "Inside le truc #foodtruck",
+--            "from": {
+--                "username": "kevin",
+--                "full_name": "Kevin Systrom",
+--                "type": "user",
+--                "id": "3"
+--            },
+--            "id": "26621408"
+--        },
+--        "likes": {
+--            "count": 15,
+--            "data": [{
+--                "username": "mikeyk",
+--                "full_name": "Mike Krieger",
+--                "id": "4",
+--                "profile_picture": "..."
+--            }, {...subset of likers...}]
+--        },
+--        "link": "http://instagr.am/p/BWrVZ/",
+--        "user": {
+--            "username": "kevin",
+--            "profile_picture": "http://distillery.s3.amazonaws.com/profiles/profile_3_75sq_1295574122.jpg",
+--            "id": "3"
+--        },
+--        "created_time": "1296710327",
+--        "images": {
+--            "low_resolution": {
+--                "url": "http://distillery.s3.amazonaws.com/media/2011/02/02/6ea7baea55774c5e81e7e3e1f6e791a7_6.jpg",
+--                "width": 306,
+--                "height": 306
+--            },
+--            "thumbnail": {
+--                "url": "http://distillery.s3.amazonaws.com/media/2011/02/02/6ea7baea55774c5e81e7e3e1f6e791a7_5.jpg",
+--                "width": 150,
+--                "height": 150
+--            },
+--            "standard_resolution": {
+--                "url": "http://distillery.s3.amazonaws.com/media/2011/02/02/6ea7baea55774c5e81e7e3e1f6e791a7_7.jpg",
+--                "width": 612,
+--                "height": 612
+--            }
+--        },
+--        "type": "image",
+--        "users_in_photo": [],
+--        "filter": "Earlybird",
+--        "tags": ["foodtruck"],
+--        "id": "22721881",
+--        "location": {
+--            "latitude": 37.778720183610183,
+--            "longitude": -122.3962783813477,
+--            "id": "520640",
+--            "street_address": "",
+--            "name": "Le Truc"
+--        }
+--    }
+
