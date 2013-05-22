@@ -18,6 +18,10 @@ module Instagram.Types (
   ,Images(..)
   ,Caption(..)
   ,Collection(..)
+  ,Aspect(..)
+  ,media
+  ,CallbackUrl
+  ,Subscription(..)
 )where
 
 import Control.Applicative
@@ -326,3 +330,61 @@ instance (FromJSON a)=>FromJSON (Collection a) where
                          v .: "data" 
     parseJSON _= mzero  
  
+
+-- | the URL to receive notifications to
+type CallbackUrl = Text 
+ 
+-- | notification aspect
+data Aspect = Aspect Text
+  deriving (Show, Read, Eq, Ord, Typeable)
+  
+-- | to json as per Instagram format    
+instance ToJSON Aspect  where
+    toJSON (Aspect t)=String t
+
+-- | from json as per Instagram format
+instance FromJSON Aspect where
+    parseJSON (String t) = pure $ Aspect t
+    parseJSON _= mzero     
+  
+media :: Aspect
+media = Aspect "media"
+
+data Subscription= Subscription {
+  sID :: Text
+  ,sType :: Text
+  ,sObject :: Text
+  ,sObjectID :: Maybe Text
+  ,sAspect :: Aspect
+  ,sCallbackUrl :: CallbackUrl
+  ,sLatitude :: Maybe Double
+  ,sLongitude :: Maybe Double
+  ,sRadius :: Maybe Integer
+  }   
+  deriving (Show,Eq,Typeable)
+  
+-- | to json as per Instagram format    
+instance ToJSON Subscription  where
+    toJSON s=object ["id" .= sID s,"type" .= sType s,"object" .= sObject s,"object_id" .= sObjectID s,"aspect" .= sAspect s
+      ,"callback_url".=sCallbackUrl s,"lat".= sLatitude s,"lng".=sLongitude s,"radius".=sRadius s]
+
+-- | from json as per Instagram format
+instance FromJSON Subscription where
+    parseJSON (Object v) = Subscription <$>
+                         v .: "id" <*>
+                         v .: "type" <*>
+                         v .: "object" <*>
+                         v .:? "object_id" <*>
+                         v .: "aspect" <*>
+                         v .: "callback_url" <*>
+                         v .:? "lat" <*>
+                         v .:? "lng" <*>
+                         v .:? "radius"
+    parseJSON _= mzero   
+    
+--    "id": "2",
+--            "type": "subscription",
+--            "object": "location",
+--            "object_id": "2345",
+--            "aspect": "media",
+--            "callback_url": "http://your-callback.com/url/"

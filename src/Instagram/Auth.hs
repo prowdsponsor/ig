@@ -27,7 +27,7 @@ getUserAccessTokenURL1 :: Monad m =>
   -> InstagramT m Text -- ^ the URL to redirect the user to
 getUserAccessTokenURL1 url scopes=  do
   cid<-liftM clientIDBS getCreds
-  bsurl<-getSimpleQueryURL "/oauth/authorize/" $ buildQuery cid ++ buildScopes scopes
+  bsurl<-getQueryURL "/oauth/authorize/" $ buildQuery cid ++ buildScopes scopes
   return $ TE.decodeUtf8 bsurl
   where
     -- | build the query with client id and redirect URI
@@ -45,7 +45,7 @@ getUserAccessTokenURL2 :: (MonadBaseControl IO m, MonadResource m) =>
 getUserAccessTokenURL2 url code= do
   cid<-liftM clientIDBS getCreds
   csecret<-liftM clientSecretBS getCreds
-  getSimpleQueryPostRequest "/oauth/access_token" (buildQuery cid csecret) >>= getJSONResponse
+  getPostRequest "/oauth/access_token" (buildQuery cid csecret) >>= getJSONResponse
   where
     -- | build query parameters, including the secret
     buildQuery :: BS.ByteString ->BS.ByteString -> HT.SimpleQuery

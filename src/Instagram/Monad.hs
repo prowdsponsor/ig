@@ -7,9 +7,10 @@ module Instagram.Monad (
   ,runInstagramT
   ,getCreds
   ,getHost
-  ,getSimpleQueryPostRequest
-  ,getSimpleQueryGetRequest
-  ,getSimpleQueryURL
+  ,getPostRequest
+  ,getGetRequest
+  ,getDeleteRequest
+  ,getQueryURL
   ,getJSONResponse
   ,getJSONEnvelope
   ,getManager
@@ -83,11 +84,11 @@ getCreds = isCreds `liftM` Is ask
 getHost :: Monad m => InstagramT m ByteString
 getHost = isHost `liftM` Is ask
 
--- | send a simple post to Instagram
-getSimpleQueryPostRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+-- | build a post request to Instagram
+getPostRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
   -> q -- ^ the query parameters
   -> InstagramT m (H.Request a) -- ^ the properly configured request
-getSimpleQueryPostRequest path query=do
+getPostRequest path query=do
   host<-getHost
   return $ H.def {
                      H.secure=True
@@ -98,11 +99,11 @@ getSimpleQueryPostRequest path query=do
                      , H.requestBody=H.RequestBodyBS $ HT.renderQuery False $ HT.toQuery query
                 }
 
--- | send a simple post to Instagram
-getSimpleQueryGetRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+-- | build a get request to Instagram
+getGetRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
   -> q -- ^ the query parameters
   -> InstagramT m (H.Request a) -- ^ the properly configured request
-getSimpleQueryGetRequest path query=do
+getGetRequest path query=do
   host<-getHost
   return $ H.def {
                      H.secure=True
@@ -113,13 +114,21 @@ getSimpleQueryGetRequest path query=do
                      , H.queryString=HT.renderQuery True $ HT.toQuery query
                 }
 
--- | build a URL for a get operation
-getSimpleQueryURL :: Monad m => ByteString -- ^ the url path
-  -> HT.SimpleQuery -- ^ the query parameters 
+-- | build a delete request  to Instagram
+getDeleteRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+  -> q -- ^ the query parameters
+  -> InstagramT m (H.Request a) -- ^ the properly configured request
+getDeleteRequest path query=do
+  get<-getGetRequest path query
+  return $ get {H.method=HT.methodDelete}
+
+-- | build a URL for a get operation with a single query
+getQueryURL :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+  -> q -- ^ the query parameters 
   -> InstagramT m ByteString  -- ^ the URL
-getSimpleQueryURL path query=do
+getQueryURL path query=do
   host<-getHost
-  return $ BS.concat ["https://",host,path,HT.renderSimpleQuery True query]
+  return $ BS.concat ["https://",host,path,HT.renderQuery True  $ HT.toQuery query]
 
 -- | perform a HTTP request and deal with the JSON result
 igReq :: forall b (m :: * -> *).

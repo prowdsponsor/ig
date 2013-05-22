@@ -63,4 +63,5 @@ library
                   Instagram.Types,
                   Instagram.Monad,
                   Instagram.Auth,
-                  Instagram.Users
+                  Instagram.Users,
+                  Instagram.RealTime

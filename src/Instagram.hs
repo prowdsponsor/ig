@@ -26,12 +26,19 @@ module Instagram
   ,Images(..)
   ,Caption(..)
   ,Collection(..)
-    
+  
   -- user
   ,RecentParams(..)
   ,getRecent
   ,SelfLikedParams(..)
   ,getSelfLiked
+  
+  -- real time
+  ,Aspect
+  ,media
+  ,CallbackUrl
+  ,Subscription(..)
+  
   ) where
 
 import Instagram.Auth
