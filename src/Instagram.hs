@@ -38,10 +38,16 @@ module Instagram
   ,media
   ,CallbackUrl
   ,Subscription(..)
-  
+  ,createSubscription
+  ,listSubscriptions
+  ,deleteSubscription
+  ,SubscriptionRequest(..)
+  ,SubscriptionParams(..)
+  ,DeletionParams(..)
   ) where
 
 import Instagram.Auth
 import Instagram.Monad
+import Instagram.RealTime
 import Instagram.Types
 import Instagram.Users

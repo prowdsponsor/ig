@@ -1,6 +1,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | Real time subscription management
-module Instagram.RealTime where
+module Instagram.RealTime (
+  createSubscription
+  ,listSubscriptions
+  ,deleteSubscription
+  ,SubscriptionRequest(..)
+  ,SubscriptionParams(..)
+  ,DeletionParams(..)
+)
+
+where
 
 import Instagram.Monad
 import Instagram.Types
@@ -19,6 +28,19 @@ createSubscription :: (MonadBaseControl IO m, MonadResource m) =>
 createSubscription params=do
   let url="/v1/subscriptions/"
   getPostRequest url params>>= getJSONEnvelope  
+
+listSubscriptions :: (MonadBaseControl IO m, MonadResource m) => 
+  InstagramT m (Envelope [Subscription]) -- ^ the ID of the subscription
+listSubscriptions =do
+  let url="/v1/subscriptions/"
+  getGetRequest url ([]::HT.Query)>>= getJSONEnvelope  
+
+deleteSubscription :: (MonadBaseControl IO m, MonadResource m) => 
+  DeletionParams -- ^ the parameters for the deletion
+  -> InstagramT m (Envelope ()) -- ^ the ID of the subscription
+deleteSubscription params=do
+  let url="/v1/subscriptions/"
+  getDeleteRequest url params>>= getJSONEnvelope  
  
 data SubscriptionParams= SubscriptionParams {
   spRequest :: SubscriptionRequest
@@ -56,4 +78,21 @@ instance HT.QueryLike SubscriptionRequest where
     ,("lng",Just $ pack $ show lng)
     ,("radius",Just $ pack $ show rad)]
   
-
+data DeletionParams=DeleteAll
+  | DeleteOne {
+    doID :: Text
+    }
+  | DeleteUsers
+  | DeleteTags
+  | DeleteLocations
+  | DeleteGeography
+   deriving (Read,Show,Eq,Ord,Typeable)
+  
+instance HT.QueryLike DeletionParams where
+  toQuery DeleteAll=[("object",Just "all")]
+  toQuery (DeleteOne i)=[("id",Just $ TE.encodeUtf8  i)]
+  toQuery DeleteUsers=[("object",Just "user")]
+  toQuery DeleteTags=[("object",Just "tag")]
+  toQuery DeleteLocations=[("object",Just "location")]
+  toQuery DeleteGeography=[("object",Just "geography")]
+  
