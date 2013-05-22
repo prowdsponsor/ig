@@ -22,8 +22,10 @@ import qualified Data.Text.Encoding as TE
 
 import Data.Default
 
+-- | User ID
 type UserID = T.Text
 
+-- | Parameters for call to recent media
 data RecentParams = RecentParams {
     rpCount :: Maybe Int,
     rpMaxTimestamp :: Maybe POSIXTime,
@@ -44,7 +46,7 @@ instance HT.QueryLike RecentParams where
     ,("max_id",fmap (pack . show) maxI)
     ,("min_id",fmap (pack . show) minI)]
     
-    
+-- | get recent media    
 getRecent :: (MonadBaseControl IO m, MonadResource m) => UserID 
   -> AccessToken
   -> RecentParams 
@@ -53,6 +55,7 @@ getRecent uid token rp=do
   let url=TE.encodeUtf8 $ T.concat ["/v1/users/",uid,"/media/recent/"]
   getSimpleQueryGetRequest url (addToken token rp)>>= getJSONEnvelope
 
+-- | parameters for self liked call
 data SelfLikedParams = SelfLikedParams {
   slpCount :: Maybe Int,
   slpMaxLikeID :: Maybe String
@@ -67,6 +70,7 @@ instance HT.QueryLike SelfLikedParams where
     [("count",fmap (pack . show) c)
     ,("max_like_id",fmap (pack . show) maxI)] 
 
+-- | get media liked by logged in user
 getSelfLiked :: (MonadBaseControl IO m, MonadResource m) => OAuthToken 
   -> SelfLikedParams
   -> InstagramT m (Envelope [Media]) 

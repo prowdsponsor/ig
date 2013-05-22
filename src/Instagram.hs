@@ -20,7 +20,13 @@ module Instagram
   -- data
   ,Envelope(..)
   ,Pagination(..)
-  
+  ,Media(..)
+  ,Location(..)
+  ,ImageData(..)
+  ,Images(..)
+  ,Caption(..)
+  ,Collection(..)
+    
   -- user
   ,RecentParams(..)
   ,getRecent

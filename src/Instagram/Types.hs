@@ -13,6 +13,11 @@ module Instagram.Types (
   ,IGError
   ,Pagination(..)
   ,Media(..)
+  ,Location(..)
+  ,ImageData(..)
+  ,Images(..)
+  ,Caption(..)
+  ,Collection(..)
 )where
 
 import Control.Applicative
@@ -26,7 +31,6 @@ import Control.Monad (mzero)
 import qualified Data.Text.Encoding as TE
 import Control.Exception.Base (Exception)
 import Data.Time.Clock.POSIX (POSIXTime)
-
 
 -- | the app credentials
 data Credentials = Credentials {
@@ -127,6 +131,7 @@ data IGException = JSONException String -- ^ JSON parsingError
   
 instance Exception IGException 
 
+-- | envelope for Instagram response
 data Envelope d=Envelope{
   eMeta :: IGError,
   eData :: d,
@@ -145,7 +150,8 @@ instance (FromJSON d)=>FromJSON (Envelope d) where
                          v .: "data" <*>
                          v .:? "pagination"
     parseJSON _= mzero
-  
+
+-- | pagination info for responses that can return a lot of data  
 data Pagination = Pagination {
    pNextUrl :: Maybe Text
    ,pNextMaxID :: Maybe Text
@@ -163,19 +169,31 @@ instance FromJSON Pagination where
                          v .:? "next_max_id"
     parseJSON _= mzero  
   
+-- | instagram media object
 data Media = Media {
   mID :: Text
+  ,mCaption :: Caption
+  ,mLink :: Text
+  ,mUser :: User 
   ,mCreated :: POSIXTime
+  ,mImages :: Images
   ,mType :: Text
-  ,mUsers :: [User]
+  ,mUsersInPhoto :: [User]
   ,mFilter :: Text
   ,mTags :: [Text]
+  ,mLocation :: Location
+  ,mComments :: Collection Caption
+  ,mLikes :: Collection User
+  ,mUserHasLiked :: Bool
+  ,mAttribution :: Maybe Object -- ^ seems to be open format https://groups.google.com/forum/?fromgroups#!topic/instagram-api-developers/KvGH1cnjljQ
   }  
-  deriving (Show,Eq,Ord,Typeable)
+  deriving (Show,Eq,Typeable)
   
 -- | to json as per Instagram format    
 instance ToJSON Media  where
-    toJSON m=object ["id" .= mID m,"created_time" .= (toJSON $ show $ round $ mCreated m),"type" .= mType m,"users_in_photo" .= mUsers m, "filter" .= mFilter m,"tags" .= mTags m] 
+    toJSON m=object ["id" .= mID m,"caption" .= mCaption m,"user".= mUser m,"link" .= mLink m, "created_time" .= toJSON (show ((round $ mCreated m) :: Integer))
+      ,"images" .= mImages m,"type" .= mType m,"users_in_photo" .= mUsersInPhoto m, "filter" .= mFilter m,"tags" .= mTags m
+      ,"location" .= mLocation m,"comments" .= mComments m,"likes" .= mLikes m,"user_has_liked" .= mUserHasLiked m,"attribution" .= mAttribution m] 
 
 -- | from json as per Instagram format
 instance FromJSON Media where
@@ -183,73 +201,128 @@ instance FromJSON Media where
       ct::String<-v .: "created_time"
       Media <$>
                          v .: "id" <*>
-                         (pure $ fromIntegral $ read ct) <*>
+                         v .: "caption" <*>
+                         v .: "link" <*>
+                         v .: "user" <*>
+                         pure (fromIntegral (read ct::Integer)) <*>
+                         v .: "images" <*>
                          v .: "type" <*>
                          v .: "users_in_photo" <*>
                          v .: "filter" <*>
-                         v .: "tags"
+                         v .: "tags" <*>
+                         v .: "location" <*>
+                         v .:? "comments" .!= Collection 0 [] <*>
+                         v .:? "likes" .!= Collection 0 [] <*>
+                         v .:? "user_has_liked" .!= False <*>
+                         v .:? "attribution"
     parseJSON _= mzero  
-  
---{
---        "comments": {
---            "data": [],
---            "count": 0
---        },
---        "caption": {
---            "created_time": "1296710352",
---            "text": "Inside le truc #foodtruck",
---            "from": {
---                "username": "kevin",
---                "full_name": "Kevin Systrom",
---                "type": "user",
---                "id": "3"
---            },
---            "id": "26621408"
---        },
---        "likes": {
---            "count": 15,
---            "data": [{
---                "username": "mikeyk",
---                "full_name": "Mike Krieger",
---                "id": "4",
---                "profile_picture": "..."
---            }, {...subset of likers...}]
---        },
---        "link": "http://instagr.am/p/BWrVZ/",
---        "user": {
---            "username": "kevin",
---            "profile_picture": "http://distillery.s3.amazonaws.com/profiles/profile_3_75sq_1295574122.jpg",
---            "id": "3"
---        },
---        "created_time": "1296710327",
---        "images": {
---            "low_resolution": {
---                "url": "http://distillery.s3.amazonaws.com/media/2011/02/02/6ea7baea55774c5e81e7e3e1f6e791a7_6.jpg",
---                "width": 306,
---                "height": 306
---            },
---            "thumbnail": {
---                "url": "http://distillery.s3.amazonaws.com/media/2011/02/02/6ea7baea55774c5e81e7e3e1f6e791a7_5.jpg",
---                "width": 150,
---                "height": 150
---            },
---            "standard_resolution": {
---                "url": "http://distillery.s3.amazonaws.com/media/2011/02/02/6ea7baea55774c5e81e7e3e1f6e791a7_7.jpg",
---                "width": 612,
---                "height": 612
---            }
---        },
---        "type": "image",
---        "users_in_photo": [],
---        "filter": "Earlybird",
---        "tags": ["foodtruck"],
---        "id": "22721881",
---        "location": {
---            "latitude": 37.778720183610183,
---            "longitude": -122.3962783813477,
---            "id": "520640",
---            "street_address": "",
---            "name": "Le Truc"
---        }
---    }
 
+-- | geographical location info
+data Location = Location {
+  lID :: Maybe Text
+  ,lLatitude :: Double
+  ,lLongitude :: Double
+  ,lStreetAddress :: Maybe Text
+  ,lName :: Maybe Text
+  }  
+  deriving (Show,Eq,Ord,Typeable)
+  
+-- | to json as per Instagram format      
+instance ToJSON Location where
+  toJSON l=object ["id" .= lID l,"latitude" .= lLatitude l,"longitude" .= lLongitude l, "street_address" .= lStreetAddress l,"name" .= lName l]
+  
+-- | from json as per Instagram format
+instance FromJSON Location where
+  parseJSON (Object v) = Location <$>
+    v .:? "id" <*>
+    v .: "latitude" <*>
+    v .: "longitude" <*>
+    v .:? "street_address" <*>
+    v .:? "name"
+  parseJSON _= mzero
+  
+-- | data for a single image
+data ImageData = ImageData {
+  idURL :: Text,
+  idWidth :: Integer,
+  idHeight :: Integer
+  }  
+  deriving (Show,Eq,Ord,Typeable)
+  
+-- | to json as per Instagram format      
+instance ToJSON ImageData where
+  toJSON i=object ["url" .= idURL i,"width" .= idWidth i,"height" .= idHeight i]
+  
+-- | from json as per Instagram format
+instance FromJSON ImageData where
+  parseJSON (Object v) = ImageData <$>
+    v .: "url" <*>
+    v .: "width" <*>
+    v .: "height"
+  parseJSON _= mzero  
+  
+-- | different images for the same media
+data Images = Images {
+  iLowRes :: ImageData
+  ,iThumbnail :: ImageData
+  ,iStandardRes :: ImageData
+  }
+  deriving (Show,Eq,Ord,Typeable) 
+ 
+-- | to json as per Instagram format      
+instance ToJSON Images where
+  toJSON i=object ["low_resolution" .= iLowRes i,"thumbnail" .= iThumbnail i,"standard_resolution" .= iStandardRes i]
+  
+-- | from json as per Instagram format
+instance FromJSON Images where
+  parseJSON (Object v) = Images <$>
+    v .: "low_resolution" <*>
+    v .: "thumbnail" <*>
+    v .: "standard_resolution"
+  parseJSON _= mzero  
+ 
+-- | caption on a medium
+data Caption = Caption {
+  cID :: Text
+  ,cCreated :: POSIXTime
+  ,cText :: Text
+  ,cFrom :: User
+  }
+  deriving (Show,Eq,Ord,Typeable) 
+
+-- | to json as per Instagram format    
+instance ToJSON Caption  where
+    toJSON c=object ["id" .= cID c,"created_time" .= toJSON (show ((round $ cCreated c) :: Integer))
+      ,"text" .= cText c,"from" .= cFrom c] 
+
+-- | from json as per Instagram format
+instance FromJSON Caption where
+    parseJSON (Object v) =do
+      ct::String<-v .: "created_time"
+      Caption <$>
+                         v .: "id" <*>
+                         pure (fromIntegral (read ct::Integer)) <*>
+                         v .: "text" <*>
+                         v .: "from" 
+    parseJSON _= mzero  
+
+-- | a collection of items (count + data)
+-- data can only be a subset
+data Collection a= Collection {
+  cCount :: Integer
+  ,cData :: [a]
+  }
+  deriving (Show,Eq,Ord,Typeable) 
+
+ 
+-- | to json as per Instagram format    
+instance (ToJSON a)=>ToJSON (Collection a)  where
+    toJSON igc=object ["count" .= cCount igc,"data" .= cData igc]
+
+-- | from json as per Instagram format
+instance (FromJSON a)=>FromJSON (Collection a) where
+    parseJSON (Object v) = Collection <$>
+                         v .: "count" <*>
+                         v .: "data" 
+    parseJSON _= mzero  
+ 
