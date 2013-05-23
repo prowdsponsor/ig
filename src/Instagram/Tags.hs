@@ -18,7 +18,6 @@ import qualified Data.Text as T (Text,concat)
 import Data.Conduit
 import Data.Typeable
 import Data.Default
-import Data.ByteString.Char8 (pack)
 import Data.Maybe (isJust)
 
 -- | Tag Name
@@ -53,8 +52,8 @@ searchTags name token=
    
 -- | parameters for tag pagination   
 data RecentTagParams=RecentTagParams{
-  rtpMaxID :: Maybe String
-  ,rtpMinID :: Maybe String
+  rtpMaxID :: Maybe T.Text
+  ,rtpMinID :: Maybe T.Text
   }deriving (Show,Typeable)
   
 instance Default RecentTagParams where
@@ -62,6 +61,6 @@ instance Default RecentTagParams where
  
 instance HT.QueryLike RecentTagParams where
   toQuery (RecentTagParams maxI minI)=filter (isJust .snd) 
-    [("max_id",fmap (pack . show) maxI)
-    ,("min_id",fmap (pack . show) minI)]
+    [("max_tag_id",fmap TE.encodeUtf8 maxI)
+    ,("min_tag_id",fmap TE.encodeUtf8 minI)]
 

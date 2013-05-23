@@ -13,7 +13,7 @@ module Instagram
   ,getUserAccessTokenURL2
   ,Credentials(..)
   ,OAuthToken(..)
-  ,AccessToken
+  ,AccessToken(..) -- we open this type so that the api client can just use the token data outside of your type (as a simple Text)
   ,User(..)
   ,Scope(..)
   
