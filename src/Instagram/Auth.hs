@@ -42,15 +42,12 @@ getUserAccessTokenURL2 :: (MonadBaseControl IO m, MonadResource m) =>
   RedirectUri -- ^ the redirect uri
   -> Text -- ^ the code sent back to your app
   -> InstagramT m OAuthToken -- ^ the auth token
-getUserAccessTokenURL2 url code= do
-  cid<-liftM clientIDBS getCreds
-  csecret<-liftM clientSecretBS getCreds
-  getPostRequest "/oauth/access_token" (buildQuery cid csecret) >>= getJSONResponse
+getUserAccessTokenURL2 url code= 
+  addClientInfos buildQuery >>= getPostRequest "/oauth/access_token" >>= getJSONResponse
   where
-    -- | build query parameters, including the secret
-    buildQuery :: BS.ByteString ->BS.ByteString -> HT.SimpleQuery
-    buildQuery cid csecret=[("client_id",cid),("client_secret",csecret) 
-        ,("redirect_uri",TE.encodeUtf8 url),("grant_type","authorization_code"),
+    -- | build query parameters
+    buildQuery ::  HT.SimpleQuery
+    buildQuery =[("redirect_uri",TE.encodeUtf8 url),("grant_type","authorization_code"),
         ("code",TE.encodeUtf8 code)]
      
      
