@@ -3,7 +3,7 @@
 module Instagram.RealTime (
   createSubscription
   ,listSubscriptions
-  ,deleteSubscription
+  ,deleteSubscriptions
   ,SubscriptionRequest(..)
   ,SubscriptionParams(..)
   ,DeletionParams(..)
@@ -21,55 +21,68 @@ import qualified Network.HTTP.Types as HT
 import qualified Data.Text.Encoding as TE
 import Data.Maybe (isJust)
 import Data.Conduit
+import Data.Aeson (Value(..))
 
+-- | create a subscription 
 createSubscription :: (MonadBaseControl IO m, MonadResource m) => 
-  SubscriptionParams
-  -> InstagramT m (Envelope [Subscription]) -- ^ the ID of the subscription
+  SubscriptionParams -- ^ the subscription parameters
+  -> InstagramT m (Envelope Subscription) -- ^ the created subscription
 createSubscription params=do
   let url="/v1/subscriptions/"
-  getPostRequest url params>>= getJSONEnvelope  
+  addClientInfos params >>= getPostRequest url >>= getJSONEnvelope  
 
+-- | list all subscriptions for the application
 listSubscriptions :: (MonadBaseControl IO m, MonadResource m) => 
   InstagramT m (Envelope [Subscription]) -- ^ the ID of the subscription
 listSubscriptions =do
   let url="/v1/subscriptions/"
-  getGetRequest url ([]::HT.Query)>>= getJSONEnvelope  
+  addClientInfos ([]::HT.Query) >>= getGetRequest url >>= getJSONEnvelope  
 
-deleteSubscription :: (MonadBaseControl IO m, MonadResource m) => 
+-- | delete subscriptions based on criteria
+deleteSubscriptions :: (MonadBaseControl IO m, MonadResource m) => 
   DeletionParams -- ^ the parameters for the deletion
-  -> InstagramT m (Envelope ()) -- ^ the ID of the subscription
-deleteSubscription params=do
+  -> InstagramT m (Envelope Value) -- ^ the ID of the subscription
+deleteSubscriptions params=do
   let url="/v1/subscriptions/"
-  getDeleteRequest url params>>= getJSONEnvelope  
+  addClientInfos params >>= getDeleteRequest url >>= getJSONEnvelope  
  
+-- | parameters for the subscription creation
 data SubscriptionParams= SubscriptionParams {
-  spRequest :: SubscriptionRequest
-  ,spCallback :: CallbackUrl
-  ,spAspect :: Aspect
-  ,spVerifyToken :: Maybe Text
+  spRequest :: SubscriptionRequest -- ^ the actual subscription request
+  ,spCallback :: CallbackUrl -- ^ the url Instagram will post notifications to
+  ,spAspect :: Aspect  -- ^ the subscription aspect
+  ,spVerifyToken :: Maybe Text -- ^ the verification token
   }
   deriving (Read,Show,Eq,Ord,Typeable)
-  
+
+-- | to HTTP query  
 instance HT.QueryLike SubscriptionParams where
   toQuery (SubscriptionParams req cb (Aspect asp) tok)=filter (isJust .snd) $ HT.toQuery req ++ 
     [("aspect",Just $ TE.encodeUtf8 asp)
     ,("callback_url",Just $ TE.encodeUtf8 cb)
     ,("verify_token",fmap TE.encodeUtf8 tok)]
-  
-data SubscriptionRequest=UserRequest
+
+-- | details of subscription request  
+data SubscriptionRequest
+  -- | when a user uploads a picture
+  =UserRequest
+  -- | when a picture is tagged with the given tag
   | TagRequest {
     trTag ::Text
     }
+  -- | when a picture is tagged with a specific location
   | LocationRequest {
     lrID :: Text
      }
+  -- | when a picture is tagged with a location inside the given region
   | GeographyRequest {
     grLatitude :: Double
     ,grLongitude :: Double
     ,grRadius :: Integer
     }  
     deriving (Read,Show,Eq,Ord,Typeable)
-  
+
+-- | to HTTP query    
 instance HT.QueryLike SubscriptionRequest where
   toQuery UserRequest=[("object",Just "user")]
   toQuery (TagRequest tag)=[("object",Just "tag"),("object_id",Just $ TE.encodeUtf8 tag)]
@@ -77,22 +90,31 @@ instance HT.QueryLike SubscriptionRequest where
   toQuery (GeographyRequest lat lng rad)=[("object",Just "geography"),("lat",Just $ pack $ show lat)
     ,("lng",Just $ pack $ show lng)
     ,("radius",Just $ pack $ show rad)]
-  
-data DeletionParams=DeleteAll
+ 
+-- | deletion parameters 
+data DeletionParams
+  -- | delete all subscriptions
+  =DeleteAll
+  -- | delete one subscription, given its ID
   | DeleteOne {
     doID :: Text
     }
+  -- | delete all user subscriptions
   | DeleteUsers
+  -- | delete all tag subscriptions
   | DeleteTags
+  -- | delete all location subscriptions  
   | DeleteLocations
-  | DeleteGeography
+  -- | delete all geography subscriptions  
+  | DeleteGeographies
    deriving (Read,Show,Eq,Ord,Typeable)
-  
+
+-- | to HTTP query    
 instance HT.QueryLike DeletionParams where
   toQuery DeleteAll=[("object",Just "all")]
   toQuery (DeleteOne i)=[("id",Just $ TE.encodeUtf8  i)]
   toQuery DeleteUsers=[("object",Just "user")]
   toQuery DeleteTags=[("object",Just "tag")]
   toQuery DeleteLocations=[("object",Just "location")]
-  toQuery DeleteGeography=[("object",Just "geography")]
+  toQuery DeleteGeographies=[("object",Just "geography")]
   

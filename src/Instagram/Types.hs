@@ -22,6 +22,7 @@ module Instagram.Types (
   ,media
   ,CallbackUrl
   ,Subscription(..)
+  ,Update(..)
 )where
 
 import Control.Applicative
@@ -346,7 +347,8 @@ instance ToJSON Aspect  where
 instance FromJSON Aspect where
     parseJSON (String t) = pure $ Aspect t
     parseJSON _= mzero     
-  
+
+-- | the media Aspect, the only one supported for now  
 media :: Aspect
 media = Aspect "media"
 
@@ -381,10 +383,31 @@ instance FromJSON Subscription where
                          v .:? "lng" <*>
                          v .:? "radius"
     parseJSON _= mzero   
-    
---    "id": "2",
---            "type": "subscription",
---            "object": "location",
---            "object_id": "2345",
---            "aspect": "media",
---            "callback_url": "http://your-callback.com/url/"
+ 
+-- | an update from a subscription   
+data Update = Update {
+  uSubscriptionID :: Integer
+  ,uObject :: Text
+  ,uObjectID :: Text
+  ,uChangedAspect :: Aspect
+  ,uTime :: POSIXTime
+  }
+  deriving (Show,Eq,Typeable)
+  
+-- | to json as per Instagram format    
+instance ToJSON Update  where
+    toJSON u=object ["subscription_id" .= uSubscriptionID u      ,"object" .= uObject u,"object_id" .= uObjectID u
+      ,"changed_aspect" .= uChangedAspect u,"time" .= toJSON ((round $ uTime u) :: Integer)] 
+
+-- | from json as per Instagram format
+instance FromJSON Update where
+    parseJSON (Object v) =do
+      ct::Integer<-v .: "time"
+      Update <$>
+                         v .: "subscription_id" <*>
+                         v .: "object" <*>
+                         v .: "object_id" <*>
+                         v .: "changed_aspect" <*>
+                         pure (fromIntegral ct)
+    parseJSON _= mzero    
+  

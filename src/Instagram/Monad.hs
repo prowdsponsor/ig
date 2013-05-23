@@ -17,6 +17,7 @@ module Instagram.Monad (
   ,runResourceInIs
   ,mapInstagramT
   ,addToken
+  ,addClientInfos
   ) where
 
 import Instagram.Types
@@ -43,9 +44,9 @@ import Data.Aeson (json,fromJSON,Result(..),FromJSON, Value)
 import Data.Conduit.Attoparsec (sinkParser)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
-import Data.Conduit.Binary (sinkHandle)
-import System.IO (stdout)
-import Data.Conduit.Util (zipSinks)
+-- import Data.Conduit.Binary (sinkHandle)
+-- import System.IO (stdout)
+-- import Data.Conduit.Util (zipSinks)
 
 -- | the instagram monad transformer
 -- this encapsulates the data necessary to pass the app credentials, etc
@@ -223,5 +224,16 @@ isOkay status =
   let sc = HT.statusCode status
   in 200 <= sc && sc < 300
   
+-- | add the access token to the query
 addToken :: HT.QueryLike ql=> AccessToken -> ql -> HT.Query
-addToken (AccessToken t) ql=("access_token",Just $ TE.encodeUtf8 t):(HT.toQuery ql)
+addToken (AccessToken t) ql=("access_token", Just $ TE.encodeUtf8 t) : HT.toQuery ql
+
+-- | add application client info to the query
+addClientInfos :: (C.MonadResource m, MonadBaseControl IO m,HT.QueryLike ql) =>
+    ql ->
+    InstagramT m HT.Query
+addClientInfos ql= do
+  cid<-liftM clientIDBS getCreds
+  csecret<-liftM clientSecretBS getCreds
+  return $ ("client_id",Just cid):("client_secret", Just csecret) : HT.toQuery ql
+  

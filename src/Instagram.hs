@@ -34,16 +34,17 @@ module Instagram
   ,getSelfLiked
   
   -- real time
-  ,Aspect
+  ,Aspect -- do not export constructor since only media is supported
   ,media
   ,CallbackUrl
   ,Subscription(..)
   ,createSubscription
   ,listSubscriptions
-  ,deleteSubscription
+  ,deleteSubscriptions
   ,SubscriptionRequest(..)
   ,SubscriptionParams(..)
   ,DeletionParams(..)
+  ,Update(..)
   ) where
 
 import Instagram.Auth
