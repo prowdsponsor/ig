@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances,
   MultiParamTypeClasses, UndecidableInstances, TypeFamilies,
-  FlexibleContexts, RankNTypes #-}
+  FlexibleContexts, RankNTypes,CPP #-}
 -- | the instagram monad stack and helper functions
 module Instagram.Monad (
   InstagramT
@@ -44,9 +44,12 @@ import Data.Aeson (json,fromJSON,Result(..),FromJSON, Value)
 import Data.Conduit.Attoparsec (sinkParser)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
--- import Data.Conduit.Binary (sinkHandle)
--- import System.IO (stdout)
--- import Data.Conduit.Util (zipSinks)
+
+#if DEBUG
+import Data.Conduit.Binary (sinkHandle)
+import System.IO (stdout)
+import Data.Conduit.Util (zipSinks)
+#endif
 
 -- | the instagram monad transformer
 -- this encapsulates the data necessary to pass the app credentials, etc
@@ -150,9 +153,11 @@ igReq req f=do
       cookies = H.responseCookieJar res
       ok=isOkay status
       err=H.StatusCodeException status headers cookies
-  -- for debugging
-  -- (value,_)<-H.responseBody res C.$$+- zipSinks (sinkParser json) (sinkHandle stdout)
+#if DEBUG
+  (value,_)<-H.responseBody res C.$$+- zipSinks (sinkParser json) (sinkHandle stdout)
+#else  
   value<-H.responseBody res C.$$+- sinkParser json
+#endif
   f ok err value
 
 -- | get a JSON response from a request to Instagram
