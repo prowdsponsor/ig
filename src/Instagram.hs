@@ -21,6 +21,8 @@ module Instagram
   ,Envelope(..)
   ,Pagination(..)
   ,Media(..)
+  ,Position(..)
+  ,UserPosition(..)
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
@@ -45,10 +47,33 @@ module Instagram
   ,SubscriptionParams(..)
   ,DeletionParams(..)
   ,Update(..)
+  
+  -- Tags
+  ,Tag(..)
+  ,TagName
+  ,getTag
+  ,RecentTagParams(..)
+  ,getRecentTagged
+  ,searchTags
   ) where
 
 import Instagram.Auth
 import Instagram.Monad
 import Instagram.RealTime
+import Instagram.Tags
 import Instagram.Types
 import Instagram.Users
+
+
+-- debugging
+--import Data.Aeson
+--import qualified Data.ByteString.Lazy as BS
+--
+--parse :: IO()
+--parse = do
+--  t<-BS.readFile "env1.json"
+--  let d=eitherDecode t
+--  print (d::Either String (Envelope [Media]))
+--  return()
+--  
+  

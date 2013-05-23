@@ -13,6 +13,8 @@ module Instagram.Types (
   ,IGError
   ,Pagination(..)
   ,Media(..)
+  ,Position(..)
+  ,UserPosition(..)
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
@@ -23,6 +25,7 @@ module Instagram.Types (
   ,CallbackUrl
   ,Subscription(..)
   ,Update(..)
+  ,Tag(..)
 )where
 
 import Control.Applicative
@@ -68,7 +71,7 @@ instance FromJSON OAuthToken where
     parseJSON (Object v) =OAuthToken <$>
                          v .: "access_token" <*>
                          v .: "user" 
-    parseJSON _= mzero
+    parseJSON _= fail "OAuthToken"
 
 -- | the access token is simply a Text
 newtype AccessToken=AccessToken Text
@@ -81,20 +84,21 @@ instance ToJSON AccessToken  where
 -- | simple string
 instance FromJSON  AccessToken where
         parseJSON (String s)=pure $ AccessToken s
-        parseJSON _= mzero
+        parseJSON _= fail "AccessToken"
 
 -- | the User partial profile returned by the authentication        
 data User = User {
         uID :: Text,
         uUsername :: Text,
         uFullName :: Text,
-        uProfilePicture :: Maybe Text
+        uProfilePicture :: Maybe Text,
+        uWebsite :: Maybe Text
         }        
         deriving (Show,Read,Eq,Ord,Typeable)
     
 -- | to json as per Instagram format    
 instance ToJSON User  where
-    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u] 
+    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u, "website" .= uWebsite u] 
 
 -- | from json as per Instagram format
 instance FromJSON User where
@@ -102,8 +106,9 @@ instance FromJSON User where
                          v .: "id" <*>
                          v .: "username" <*>
                          v .: "full_name" <*>
-                         v .:? "profile_picture"
-    parseJSON _= mzero
+                         v .:? "profile_picture" <*>
+                         v .:? "website"
+    parseJSON _= fail "User"
     
 -- | the scopes of the authentication
 data Scope=Basic | Comments | Relationships | Likes
@@ -127,7 +132,7 @@ instance FromJSON IGError where
                          v .: "code" <*>
                          v .:? "error_type" <*>
                          v .:? "error_message"
-    parseJSON _= mzero
+    parseJSON _= fail "IGError"
 
 -- | an exception that a call to instagram may throw
 data IGException = JSONException String -- ^ JSON parsingError
@@ -154,39 +159,45 @@ instance (FromJSON d)=>FromJSON (Envelope d) where
                          v .: "meta" <*>
                          v .: "data" <*>
                          v .:? "pagination"
-    parseJSON _= mzero
+    parseJSON _= fail "Envelope"
 
 -- | pagination info for responses that can return a lot of data  
 data Pagination = Pagination {
    pNextUrl :: Maybe Text
    ,pNextMaxID :: Maybe Text
+   ,pNextMinID :: Maybe Text
+   ,pNextMaxTagID :: Maybe Text
+   ,pMinTagID :: Maybe Text
    }
   deriving (Show,Read,Eq,Ord,Typeable)
   
- -- | to json as per Instagram format    
+-- | to json as per Instagram format    
 instance ToJSON Pagination  where
-    toJSON p=object ["next_url" .= pNextUrl p, "next_max_id" .= pNextMaxID p] 
+    toJSON p=object ["next_url" .= pNextUrl p, "next_max_id" .= pNextMaxID p, "next_min_id" .= pNextMinID p, "next_max_tag_id" .= pNextMaxTagID p,"min_tag_id" .= pMinTagID p] 
 
 -- | from json as per Instagram format
 instance FromJSON Pagination where
     parseJSON (Object v) =Pagination <$>
                          v .:? "next_url" <*>
-                         v .:? "next_max_id"
-    parseJSON _= mzero  
+                         v .:? "next_max_id" <*>
+                         v .:? "next_min_id" <*>
+                         v .:? "next_max_tag_id" <*>
+                         v .:? "min_tag_id"
+    parseJSON _= fail "Pagination"  
   
 -- | instagram media object
 data Media = Media {
   mID :: Text
-  ,mCaption :: Caption
+  ,mCaption :: Maybe Caption
   ,mLink :: Text
   ,mUser :: User 
   ,mCreated :: POSIXTime
   ,mImages :: Images
   ,mType :: Text
-  ,mUsersInPhoto :: [User]
-  ,mFilter :: Text
+  ,mUsersInPhoto :: [UserPosition]
+  ,mFilter :: Maybe Text
   ,mTags :: [Text]
-  ,mLocation :: Location
+  ,mLocation :: Maybe Location
   ,mComments :: Collection Caption
   ,mLikes :: Collection User
   ,mUserHasLiked :: Bool
@@ -206,25 +217,61 @@ instance FromJSON Media where
       ct::String<-v .: "created_time"
       Media <$>
                          v .: "id" <*>
-                         v .: "caption" <*>
+                         v .:? "caption" <*>
                          v .: "link" <*>
                          v .: "user" <*>
                          pure (fromIntegral (read ct::Integer)) <*>
                          v .: "images" <*>
                          v .: "type" <*>
                          v .: "users_in_photo" <*>
-                         v .: "filter" <*>
+                         v .:? "filter" <*>
                          v .: "tags" <*>
-                         v .: "location" <*>
+                         v .:? "location" <*>
                          v .:? "comments" .!= Collection 0 [] <*>
                          v .:? "likes" .!= Collection 0 [] <*>
                          v .:? "user_has_liked" .!= False <*>
                          v .:? "attribution"
-    parseJSON _= mzero  
+    parseJSON _= fail "Media"  
+
+-- | position in picture
+data Position = Position {
+  pX ::Double
+  ,pY :: Double
+} deriving (Show,Eq,Typeable)
+
+  
+-- | to json as per Instagram format      
+instance ToJSON Position where
+  toJSON p=object ["x" .= pX p,"y" .= pY p]
+  
+-- | from json as per Instagram format
+instance FromJSON Position where
+  parseJSON (Object v) = Position <$>
+    v .: "x" <*>
+    v .: "y" 
+  parseJSON _=fail "Position"
+  
+-- | position of a user
+data UserPosition = UserPosition {
+  upPosition :: Position
+  ,upUser :: User
+  } deriving (Show,Eq,Typeable)
+
+  
+-- | to json as per Instagram format      
+instance ToJSON UserPosition where
+  toJSON p=object ["position" .= upPosition p,"user" .= upUser p]
+  
+-- | from json as per Instagram format
+instance FromJSON UserPosition where
+  parseJSON (Object v) = UserPosition <$>
+    v .: "position" <*>
+    v .: "user" 
+  parseJSON _=fail "UserPosition"
 
 -- | geographical location info
 data Location = Location {
-  lID :: Maybe Text
+  lID :: Maybe Integer
   ,lLatitude :: Double
   ,lLongitude :: Double
   ,lStreetAddress :: Maybe Text
@@ -244,7 +291,7 @@ instance FromJSON Location where
     v .: "longitude" <*>
     v .:? "street_address" <*>
     v .:? "name"
-  parseJSON _= mzero
+  parseJSON _= fail "Location"
   
 -- | data for a single image
 data ImageData = ImageData {
@@ -264,7 +311,7 @@ instance FromJSON ImageData where
     v .: "url" <*>
     v .: "width" <*>
     v .: "height"
-  parseJSON _= mzero  
+  parseJSON _= fail "ImageData"  
   
 -- | different images for the same media
 data Images = Images {
@@ -284,7 +331,7 @@ instance FromJSON Images where
     v .: "low_resolution" <*>
     v .: "thumbnail" <*>
     v .: "standard_resolution"
-  parseJSON _= mzero  
+  parseJSON _= fail "Images"  
  
 -- | caption on a medium
 data Caption = Caption {
@@ -309,7 +356,7 @@ instance FromJSON Caption where
                          pure (fromIntegral (read ct::Integer)) <*>
                          v .: "text" <*>
                          v .: "from" 
-    parseJSON _= mzero  
+    parseJSON _= fail "Caption"  
 
 -- | a collection of items (count + data)
 -- data can only be a subset
@@ -329,7 +376,7 @@ instance (FromJSON a)=>FromJSON (Collection a) where
     parseJSON (Object v) = Collection <$>
                          v .: "count" <*>
                          v .: "data" 
-    parseJSON _= mzero  
+    parseJSON _= fail "Collection"  
  
 
 -- | the URL to receive notifications to
@@ -346,7 +393,7 @@ instance ToJSON Aspect  where
 -- | from json as per Instagram format
 instance FromJSON Aspect where
     parseJSON (String t) = pure $ Aspect t
-    parseJSON _= mzero     
+    parseJSON _= fail "Aspect"     
 
 -- | the media Aspect, the only one supported for now  
 media :: Aspect
@@ -382,7 +429,7 @@ instance FromJSON Subscription where
                          v .:? "lat" <*>
                          v .:? "lng" <*>
                          v .:? "radius"
-    parseJSON _= mzero   
+    parseJSON _= fail "Subscription"   
  
 -- | an update from a subscription   
 data Update = Update {
@@ -409,5 +456,22 @@ instance FromJSON Update where
                          v .: "object_id" <*>
                          v .: "changed_aspect" <*>
                          pure (fromIntegral ct)
-    parseJSON _= mzero    
+    parseJSON _= fail "Update"    
+
+-- | a Tag  
+data Tag = Tag {
+  tName :: Text,
+  tMediaCount :: Integer
+  }
+  deriving (Show,Eq,Ord,Typeable) 
   
+-- | to json as per Instagram format    
+instance ToJSON Tag  where
+    toJSON t=object ["name" .= tName t,"media_count" .= tMediaCount t] 
+
+-- | from json as per Instagram format
+instance FromJSON Tag where
+    parseJSON (Object v) = Tag <$>
+                         v .: "name" <*>
+                         v .:? "media_count" .!= 0
+    parseJSON _= fail "Tag"      

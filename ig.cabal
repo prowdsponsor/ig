@@ -68,6 +68,7 @@ library
                   Instagram.Monad,
                   Instagram.Auth,
                   Instagram.Users,
-                  Instagram.RealTime
+                  Instagram.RealTime,
+                  Instagram.Tags
   if flag(debug)
     cpp-options: -DDEBUG
