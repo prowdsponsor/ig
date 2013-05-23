@@ -1,16 +1,23 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances, MultiParamTypeClasses, UndecidableInstances, TypeFamilies, FlexibleContexts, RankNTypes, PatternGuards #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances,
+  MultiParamTypeClasses, UndecidableInstances, TypeFamilies,
+  FlexibleContexts, RankNTypes,CPP #-}
 -- | the instagram monad stack and helper functions
 module Instagram.Monad (
   InstagramT
   ,runInstagramT
   ,getCreds
   ,getHost
-  ,getSimpleQueryPostRequest
-  ,getSimpleQueryURL
+  ,getPostRequest
+  ,getGetRequest
+  ,getDeleteRequest
+  ,getQueryURL
   ,getJSONResponse
+  ,getJSONEnvelope
   ,getManager
   ,runResourceInIs
   ,mapInstagramT
+  ,addToken
+  ,addClientInfos
   ) where
 
 import Instagram.Types
@@ -33,9 +40,16 @@ import qualified Network.HTTP.Conduit as H
 import qualified Network.HTTP.Types as HT
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import Data.Aeson (json,fromJSON,Result(..),FromJSON)
+import Data.Aeson (json,fromJSON,Result(..),FromJSON, Value)
 import Data.Conduit.Attoparsec (sinkParser)
 import Control.Exception.Base (throw)
+import qualified Data.Text.Encoding as TE
+
+#if DEBUG
+import Data.Conduit.Binary (sinkHandle)
+import System.IO (stdout)
+import Data.Conduit.Util (zipSinks)
+#endif
 
 -- | the instagram monad transformer
 -- this encapsulates the data necessary to pass the app credentials, etc
@@ -74,11 +88,11 @@ getCreds = isCreds `liftM` Is ask
 getHost :: Monad m => InstagramT m ByteString
 getHost = isHost `liftM` Is ask
 
--- | send a simple post to Instagram
-getSimpleQueryPostRequest :: Monad m => ByteString -- ^ the url path
-  -> HT.SimpleQuery -- ^ the query parameters
+-- | build a post request to Instagram
+getPostRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+  -> q -- ^ the query parameters
   -> InstagramT m (H.Request a) -- ^ the properly configured request
-getSimpleQueryPostRequest path query=do
+getPostRequest path query=do
   host<-getHost
   return $ H.def {
                      H.secure=True
@@ -86,16 +100,65 @@ getSimpleQueryPostRequest path query=do
                      , H.port = 443
                      , H.path = path
                      , H.method=HT.methodPost
-                     , H.requestBody=H.RequestBodyBS $ HT.renderSimpleQuery False query
+                     , H.requestBody=H.RequestBodyBS $ HT.renderQuery False $ HT.toQuery query
                 }
 
--- | build a URL for a get operation
-getSimpleQueryURL :: Monad m => ByteString -- ^ the url path
-  -> HT.SimpleQuery -- ^ the query parameters 
-  -> InstagramT m ByteString  -- ^ the URL
-getSimpleQueryURL path query=do
+-- | build a get request to Instagram
+getGetRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+  -> q -- ^ the query parameters
+  -> InstagramT m (H.Request a) -- ^ the properly configured request
+getGetRequest path query=do
   host<-getHost
-  return $ BS.concat ["https://",host,path,HT.renderSimpleQuery True query]
+  return $ H.def {
+                     H.secure=True
+                     , H.host = host
+                     , H.port = 443
+                     , H.path = path
+                     , H.method=HT.methodGet
+                     , H.queryString=HT.renderQuery True $ HT.toQuery query
+                }
+
+-- | build a delete request  to Instagram
+getDeleteRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+  -> q -- ^ the query parameters
+  -> InstagramT m (H.Request a) -- ^ the properly configured request
+getDeleteRequest path query=do
+  get<-getGetRequest path query
+  return $ get {H.method=HT.methodDelete}
+
+-- | build a URL for a get operation with a single query
+getQueryURL :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+  -> q -- ^ the query parameters 
+  -> InstagramT m ByteString  -- ^ the URL
+getQueryURL path query=do
+  host<-getHost
+  return $ BS.concat ["https://",host,path,HT.renderQuery True  $ HT.toQuery query]
+
+-- | perform a HTTP request and deal with the JSON result
+igReq :: forall b (m :: * -> *).
+                    (MonadBaseControl IO m, C.MonadResource m) =>
+                    H.Request (InstagramT m)
+                    -> (Bool
+                        -> H.HttpException
+                        -> Value
+                        -> InstagramT m b)
+                    -> InstagramT m b
+igReq req f=do
+   -- we check the status ourselves
+  let req' = req { H.checkStatus = \_ _ _ -> Nothing }
+  mgr<-getManager
+  res<-H.http req' mgr
+  let status = H.responseStatus res
+      headers = H.responseHeaders res
+      cookies = H.responseCookieJar res
+      ok=isOkay status
+      err=H.StatusCodeException status headers cookies
+#if DEBUG
+  (value,_)<-H.responseBody res C.$$+- zipSinks (sinkParser json) (sinkHandle stdout)
+#else  
+  value<-H.responseBody res C.$$+- sinkParser json
+#endif
+  f ok err value
 
 -- | get a JSON response from a request to Instagram
 getJSONResponse :: forall (m :: * -> *) v.
@@ -103,28 +166,40 @@ getJSONResponse :: forall (m :: * -> *) v.
                                  H.Request (InstagramT m)
                                  -> InstagramT
                                       m v
-getJSONResponse req=do
-  -- we check the status ourselves
-  let req' = req { H.checkStatus = \_ _ _ -> Nothing }
-  mgr<-getManager
-  res<-H.http req' mgr
-  let status = H.responseStatus res
-      headers = H.responseHeaders res
-      cookies = H.responseCookieJar res
-  value<-H.responseBody res C.$$+- sinkParser json    
-  if isOkay status
-    then
-      -- parse response as the expected value
-      case fromJSON value of
-        Success ot->return ot
-        Error err->throw $ JSONException err
-    else 
-      -- parse response as an error
-      case fromJSON value of
-        Success ise-> throw $ IGAppException ise
-        _ -> throw $ H.StatusCodeException status headers cookies
-            
+getJSONResponse req=
+  igReq req (\ok exc value->
+    if ok
+      then
+        -- parse response as the expected value
+        case fromJSON value of
+          Success ot->return ot
+          Error err->throw $ JSONException err
+      else 
+        -- parse response as an error
+        case fromJSON value of
+          Success ise-> throw $ IGAppException ise
+          _ -> throw exc
+            )
 
+
+
+-- | get an envelope from a request to Instagram
+getJSONEnvelope :: forall (m :: * -> *) v.
+                                 (MonadBaseControl IO m, C.MonadResource m,FromJSON v) =>
+                                 H.Request (InstagramT m)
+                                 -> InstagramT
+                                      m (Envelope v)
+getJSONEnvelope req=
+  igReq req (\ok exc value->
+    -- parse response as the expected value
+    case fromJSON value of
+        Success ot-> if ok 
+          then return ot
+          else throw $ IGAppException $ eMeta ot
+        Error err-> if ok
+          then throw $ JSONException err
+          else throw exc
+    )
       
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager
@@ -153,3 +228,17 @@ isOkay :: HT.Status -> Bool
 isOkay status =
   let sc = HT.statusCode status
   in 200 <= sc && sc < 300
+  
+-- | add the access token to the query
+addToken :: HT.QueryLike ql=> AccessToken -> ql -> HT.Query
+addToken (AccessToken t) ql=("access_token", Just $ TE.encodeUtf8 t) : HT.toQuery ql
+
+-- | add application client info to the query
+addClientInfos :: (C.MonadResource m, MonadBaseControl IO m,HT.QueryLike ql) =>
+    ql ->
+    InstagramT m HT.Query
+addClientInfos ql= do
+  cid<-liftM clientIDBS getCreds
+  csecret<-liftM clientSecretBS getCreds
+  return $ ("client_id",Just cid):("client_secret", Just csecret) : HT.toQuery ql
+  
