@@ -17,6 +17,7 @@ module Instagram.Monad (
   ,runResourceInIs
   ,mapInstagramT
   ,addToken
+  ,addTokenM
   ,addClientInfos
   ) where
 
@@ -26,7 +27,7 @@ import Control.Applicative
 import Control.Monad (MonadPlus, liftM)
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Fix (MonadFix)
-import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Trans.Class (MonadTrans(lift))
 import Control.Monad.Trans.Control ( MonadTransControl(..), MonadBaseControl(..)
                                    , ComposeSt, defaultLiftBaseWith
@@ -40,6 +41,7 @@ import qualified Network.HTTP.Conduit as H
 import qualified Network.HTTP.Types as HT
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
+import qualified Data.ByteString.Char8 as BSC
 import Data.Aeson (json,fromJSON,Result(..),FromJSON)
 import Data.Conduit.Attoparsec (sinkParser)
 import Control.Exception.Base (throw)
@@ -104,22 +106,26 @@ getPostRequest path query=do
                 }
 
 -- | build a get request to Instagram
-getGetRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+getGetRequest :: (Monad m,MonadIO m,HT.QueryLike q) => ByteString -- ^ the url path
   -> q -- ^ the query parameters
   -> InstagramT m (H.Request a) -- ^ the properly configured request
 getGetRequest path query=do
   host<-getHost
+  let qs=HT.renderQuery True $ HT.toQuery query
+#if DEBUG
+  liftIO $ BSC.putStrLn $ BS.append path qs
+#endif  
   return $ H.def {
                      H.secure=True
                      , H.host = host
                      , H.port = 443
                      , H.path = path
                      , H.method=HT.methodGet
-                     , H.queryString=HT.renderQuery True $ HT.toQuery query
+                     , H.queryString=qs
                 }
 
 -- | build a delete request  to Instagram
-getDeleteRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+getDeleteRequest :: (Monad m,MonadIO m,HT.QueryLike q) => ByteString -- ^ the url path
   -> q -- ^ the query parameters
   -> InstagramT m (H.Request a) -- ^ the properly configured request
 getDeleteRequest path query=do
@@ -217,6 +223,14 @@ isOkay status =
 -- | add the access token to the query
 addToken :: HT.QueryLike ql=> AccessToken -> ql -> HT.Query
 addToken (AccessToken t) ql=("access_token", Just $ TE.encodeUtf8 t) : HT.toQuery ql
+
+-- | add an optional access token to the query
+-- if we don't have a token, we'll pass the client_id
+addTokenM :: (C.MonadResource m, MonadBaseControl IO m,HT.QueryLike ql)=> Maybe AccessToken -> ql -> InstagramT m HT.Query
+addTokenM (Just at) ql=return $ addToken at ql
+addTokenM _ ql= do
+  cid<-liftM clientIDBS getCreds
+  return $ ("client_id",Just cid) : HT.toQuery ql
 
 -- | add application client info to the query
 addClientInfos :: (C.MonadResource m, MonadBaseControl IO m,HT.QueryLike ql) =>

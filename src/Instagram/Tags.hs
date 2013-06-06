@@ -26,29 +26,29 @@ type TagName = T.Text
 -- | get a tag by name
 getTag :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> AccessToken
+  -> Maybe AccessToken
   ->InstagramT m (Envelope (Maybe Tag))
 getTag name token=do
   let url=TE.encodeUtf8 $ T.concat ["/v1/tags/",name]
-  getGetRequest url (addToken token ([]::HT.Query))>>= getJSONEnvelope
+  addTokenM token ([]::HT.Query) >>= getGetRequest url >>= getJSONEnvelope
   
 -- | get media recently tagged by the given tag
 getRecentTagged :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> AccessToken
+  -> Maybe AccessToken
   -> RecentTagParams
   ->InstagramT m (Envelope [Media])
 getRecentTagged name token rtp=do
    let url=TE.encodeUtf8 $ T.concat ["/v1/tags/",name,"/media/recent/"]
-   getGetRequest url (addToken token rtp)>>= getJSONEnvelope
+   addTokenM token rtp >>= getGetRequest url >>= getJSONEnvelope
 
 -- | search tags with given prefix   
 searchTags :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> AccessToken
+  -> Maybe AccessToken
   ->InstagramT m (Envelope [Tag])
 searchTags name token=
- getGetRequest "/v1/tags/search" (addToken token ([("q",TE.encodeUtf8 name)]::HT.SimpleQuery))>>= getJSONEnvelope   
+ addTokenM token ([("q",TE.encodeUtf8 name)]::HT.SimpleQuery) >>= getGetRequest "/v1/tags/search" >>= getJSONEnvelope   
    
 -- | parameters for tag pagination   
 data RecentTagParams=RecentTagParams{

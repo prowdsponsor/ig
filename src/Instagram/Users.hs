@@ -53,7 +53,7 @@ getRecent :: (MonadBaseControl IO m, MonadResource m) => UserID
   -> InstagramT m (Envelope [Media])
 getRecent uid token rp=do
   let url=TE.encodeUtf8 $ T.concat ["/v1/users/",uid,"/media/recent/"]
-  getGetRequest url (addToken token rp)>>= getJSONEnvelope
+  getGetRequest url (addToken token rp) >>= getJSONEnvelope
 
 -- | parameters for self liked call
 data SelfLikedParams = SelfLikedParams {
