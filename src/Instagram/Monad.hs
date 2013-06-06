@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, FlexibleInstances,
+{-# LANGUAGE ScopedTypeVariables, GeneralizedNewtypeDeriving, FlexibleInstances,
   MultiParamTypeClasses, UndecidableInstances, TypeFamilies,
   FlexibleContexts, RankNTypes,CPP #-}
 -- | the instagram monad stack and helper functions
@@ -40,7 +40,7 @@ import qualified Network.HTTP.Conduit as H
 import qualified Network.HTTP.Types as HT
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
-import Data.Aeson (json,fromJSON,Result(..),FromJSON, Value)
+import Data.Aeson (json,fromJSON,Result(..),FromJSON)
 import Data.Conduit.Attoparsec (sinkParser)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
@@ -135,15 +135,12 @@ getQueryURL path query=do
   return $ BS.concat ["https://",host,path,HT.renderQuery True  $ HT.toQuery query]
 
 -- | perform a HTTP request and deal with the JSON result
-igReq :: forall b (m :: * -> *).
-                    (MonadBaseControl IO m, C.MonadResource m) =>
+igReq :: forall b (m :: * -> *) wrappedErr .
+                    (MonadBaseControl IO m, C.MonadResource m,FromJSON b,FromJSON wrappedErr) =>
                     H.Request (InstagramT m)
-                    -> (Bool
-                        -> H.HttpException
-                        -> Value
-                        -> InstagramT m b)
+                    -> (wrappedErr -> IGError) -- ^ extract the error from the JSON
                     -> InstagramT m b
-igReq req f=do
+igReq req extractError=do
    -- we check the status ourselves
   let req' = req { H.checkStatus = \_ _ _ -> Nothing }
   mgr<-getManager
@@ -158,48 +155,36 @@ igReq req f=do
 #else  
   value<-H.responseBody res C.$$+- sinkParser json
 #endif
-  f ok err value
+  if ok
+    then 
+        -- parse response as the expected value
+        case fromJSON value of
+          Success ot->return ot
+          Error jerr->throw $ JSONException jerr -- got an ok response we couldn't parse
+    else
+        -- parse response as an error
+        case fromJSON value of
+          Success ise-> throw $ IGAppException $ extractError ise
+          _ -> throw err -- we can't even parse the error, throw the HTTP error
 
 -- | get a JSON response from a request to Instagram
+-- instagram returns either a result, or an error
 getJSONResponse :: forall (m :: * -> *) v.
                                  (MonadBaseControl IO m, C.MonadResource m,FromJSON v) =>
                                  H.Request (InstagramT m)
                                  -> InstagramT
                                       m v
-getJSONResponse req=
-  igReq req (\ok exc value->
-    if ok
-      then
-        -- parse response as the expected value
-        case fromJSON value of
-          Success ot->return ot
-          Error err->throw $ JSONException err
-      else 
-        -- parse response as an error
-        case fromJSON value of
-          Success ise-> throw $ IGAppException ise
-          _ -> throw exc
-            )
-
-
+getJSONResponse req=igReq req id
 
 -- | get an envelope from a request to Instagram
+-- the error is wrapped inside the envelope
 getJSONEnvelope :: forall (m :: * -> *) v.
                                  (MonadBaseControl IO m, C.MonadResource m,FromJSON v) =>
                                  H.Request (InstagramT m)
                                  -> InstagramT
                                       m (Envelope v)
-getJSONEnvelope req=
-  igReq req (\ok exc value->
-    -- parse response as the expected value
-    case fromJSON value of
-        Success ot-> if ok 
-          then return ot
-          else throw $ IGAppException $ eMeta ot
-        Error err-> if ok
-          then throw $ JSONException err
-          else throw exc
-    )
+getJSONEnvelope req=igReq req (eMeta::(Envelope v->IGError)) -- we need the signature otherwise we get ambiguous type errors
+
       
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager
