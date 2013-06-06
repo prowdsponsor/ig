@@ -1,10 +1,15 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | Users end point handling
 module Instagram.Users (
-  RecentParams(..)
+  getUser
+  ,SelfFeedParams(..)
+  ,getSelfFeed
+  ,RecentParams(..)
   ,getRecent
   ,SelfLikedParams(..)
   ,getSelfLiked
+  ,UserSearchParams(..)
+  ,searchUsers
 ) where
 
 import Instagram.Monad
@@ -16,22 +21,52 @@ import Data.Typeable (Typeable)
 import qualified Network.HTTP.Types as HT
 import Data.ByteString.Char8 (pack)
 import Data.Maybe (isJust)
-import qualified Data.Text as T (Text,concat)
+import qualified Data.Text as T (Text)
 import Data.Conduit
 import qualified Data.Text.Encoding as TE
-
 import Data.Default
 
 -- | User ID
 type UserID = T.Text
+
+-- | get user details
+getUser ::     (MonadBaseControl IO m, MonadResource m) => UserID 
+  -> Maybe AccessToken
+  -> InstagramT m (Envelope (Maybe User))
+getUser uid token  =getGetEnvelopeM ["/v1/users/",uid] token ([]::HT.Query)
+  
+-- | Parameters for call to recent media
+data SelfFeedParams = SelfFeedParams {
+    sfpCount :: Maybe Int,
+    sfpMaxID :: Maybe T.Text,
+    sfpMinId :: Maybe T.Text
+  }
+  deriving (Show,Typeable)
+  
+instance Default SelfFeedParams where
+  def=SelfFeedParams Nothing Nothing Nothing
+  
+instance HT.QueryLike SelfFeedParams where
+  toQuery (SelfFeedParams c maxI minI)=filter (isJust .snd) 
+    [("count",fmap (pack . show) c)
+    ,("max_id",fmap TE.encodeUtf8 maxI)
+    ,("min_id",fmap TE.encodeUtf8 minI)]
+    
+    
+-- | get recent media    
+getSelfFeed :: (MonadBaseControl IO m, MonadResource m) =>
+  OAuthToken
+  -> SelfFeedParams 
+  -> InstagramT m (Envelope [Media])
+getSelfFeed token=getGetEnvelope ["/v1/users/self/feed/"] (oaAccessToken token) 
 
 -- | Parameters for call to recent media
 data RecentParams = RecentParams {
     rpCount :: Maybe Int,
     rpMaxTimestamp :: Maybe POSIXTime,
     rpMinTimestamp :: Maybe POSIXTime,
-    rpMaxID :: Maybe String,
-    rpMinId :: Maybe String
+    rpMaxID :: Maybe T.Text,
+    rpMinId :: Maybe T.Text
   }
   deriving (Show,Typeable)
   
@@ -43,22 +78,21 @@ instance HT.QueryLike RecentParams where
     [("count",fmap (pack . show) c)
     ,("max_timestamp",fmap (pack . show . round) maxT)
     ,("min_timestamp",fmap (pack . show . round) minT)
-    ,("max_id",fmap (pack . show) maxI)
-    ,("min_id",fmap (pack . show) minI)]
+    ,("max_id",fmap TE.encodeUtf8 maxI)
+    ,("min_id",fmap TE.encodeUtf8 minI)]
+    
     
 -- | get recent media    
 getRecent :: (MonadBaseControl IO m, MonadResource m) => UserID 
   -> AccessToken
   -> RecentParams 
   -> InstagramT m (Envelope [Media])
-getRecent uid token rp=do
-  let url=TE.encodeUtf8 $ T.concat ["/v1/users/",uid,"/media/recent/"]
-  getGetRequest url (addToken token rp) >>= getJSONEnvelope
+getRecent uid=getGetEnvelope ["/v1/users/",uid,"/media/recent/"]
 
 -- | parameters for self liked call
 data SelfLikedParams = SelfLikedParams {
   slpCount :: Maybe Int,
-  slpMaxLikeID :: Maybe String
+  slpMaxLikeID :: Maybe T.Text
   }
   deriving (Show,Typeable)
   
@@ -67,13 +101,29 @@ instance Default SelfLikedParams where
   
 instance HT.QueryLike SelfLikedParams where
   toQuery (SelfLikedParams c maxI)=filter (isJust .snd) 
-    [("count",fmap (pack . show) c)
-    ,("max_like_id",fmap (pack . show) maxI)] 
+    [("count",fmap (pack . show) c) 
+    ,("max_like_id",fmap TE.encodeUtf8 maxI)] 
 
 -- | get media liked by logged in user
 getSelfLiked :: (MonadBaseControl IO m, MonadResource m) => OAuthToken 
   -> SelfLikedParams
   -> InstagramT m (Envelope [Media]) 
-getSelfLiked token slp=do
-  let url="/v1/users/self/media/liked"
-  getGetRequest url (addToken (oaAccessToken token) slp)>>= getJSONEnvelope
+getSelfLiked token =getGetEnvelope ["/v1/users/self/media/liked"] (oaAccessToken token) 
+
+-- | parameters for self liked call
+data UserSearchParams = UserSearchParams {
+  uspQuery :: T.Text,
+  uspCount :: Maybe Int
+  }
+  deriving (Show,Typeable)
+  
+instance HT.QueryLike UserSearchParams where
+  toQuery (UserSearchParams q c )=filter (isJust .snd) 
+    [("count",fmap (pack . show) c) -- does not seem to be taken into account...
+    ,("q",Just $ TE.encodeUtf8 q)] 
+
+-- | get media liked by logged in user
+searchUsers :: (MonadBaseControl IO m, MonadResource m) => Maybe AccessToken 
+  -> UserSearchParams
+  -> InstagramT m (Envelope [User]) 
+searchUsers =getGetEnvelopeM ["/v1/users/search"]

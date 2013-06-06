@@ -13,6 +13,8 @@ module Instagram.Monad (
   ,getQueryURL
   ,getJSONResponse
   ,getJSONEnvelope
+  ,getGetEnvelope
+  ,getGetEnvelopeM
   ,getManager
   ,runResourceInIs
   ,mapInstagramT
@@ -46,6 +48,7 @@ import Data.Aeson (json,fromJSON,Result(..),FromJSON)
 import Data.Conduit.Attoparsec (sinkParser)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text as T (Text,concat)
 
 #if DEBUG
 import Data.Conduit.Binary (sinkHandle)
@@ -191,6 +194,23 @@ getJSONEnvelope :: forall (m :: * -> *) v.
                                       m (Envelope v)
 getJSONEnvelope req=igReq req (eMeta::(Envelope v->IGError)) -- we need the signature otherwise we get ambiguous type errors
 
+-- | get an envelope from Instagram
+getGetEnvelope :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+  [T.Text] -- | the URL components, will be concatenated
+  -> AccessToken -- | the access token
+  -> ql -- | the query parameters
+  -> InstagramT m (Envelope v) -- | the resulting envelope
+getGetEnvelope urlComponents token=getGetEnvelopeM urlComponents (Just token)
+
+-- | get an envelope from Instagram, with optional authentication
+getGetEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+  [T.Text]  -- | the URL components, will be concatenated
+  -> Maybe AccessToken -- | the access token
+  -> ql -- | the query parameters
+  -> InstagramT m (Envelope v) -- | the resulting envelope
+getGetEnvelopeM urlComponents token ql=do
+   let url=TE.encodeUtf8 $ T.concat urlComponents
+   addTokenM token ql >>= getGetRequest url >>= getJSONEnvelope  
       
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager

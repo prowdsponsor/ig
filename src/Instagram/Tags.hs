@@ -14,7 +14,7 @@ import Instagram.Types
 import qualified Data.Text.Encoding as TE
 import qualified Network.HTTP.Types as HT 
 
-import qualified Data.Text as T (Text,concat)
+import qualified Data.Text as T (Text)
 import Data.Conduit
 import Data.Typeable
 import Data.Default
@@ -28,9 +28,7 @@ getTag :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
   -> Maybe AccessToken
   ->InstagramT m (Envelope (Maybe Tag))
-getTag name token=do
-  let url=TE.encodeUtf8 $ T.concat ["/v1/tags/",name]
-  addTokenM token ([]::HT.Query) >>= getGetRequest url >>= getJSONEnvelope
+getTag name token=getGetEnvelopeM ["/v1/tags/",name] token ([]::HT.Query)
   
 -- | get media recently tagged by the given tag
 getRecentTagged :: (MonadBaseControl IO m, MonadResource m) =>
@@ -38,17 +36,14 @@ getRecentTagged :: (MonadBaseControl IO m, MonadResource m) =>
   -> Maybe AccessToken
   -> RecentTagParams
   ->InstagramT m (Envelope [Media])
-getRecentTagged name token rtp=do
-   let url=TE.encodeUtf8 $ T.concat ["/v1/tags/",name,"/media/recent/"]
-   addTokenM token rtp >>= getGetRequest url >>= getJSONEnvelope
+getRecentTagged name=getGetEnvelopeM ["/v1/tags/",name,"/media/recent/"]
 
 -- | search tags with given prefix   
 searchTags :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
   -> Maybe AccessToken
   ->InstagramT m (Envelope [Tag])
-searchTags name token=
- addTokenM token ([("q",TE.encodeUtf8 name)]::HT.SimpleQuery) >>= getGetRequest "/v1/tags/search" >>= getJSONEnvelope   
+searchTags name token=getGetEnvelopeM ["/v1/tags/search"] token ([("q",TE.encodeUtf8 name)]::HT.SimpleQuery)
    
 -- | parameters for tag pagination   
 data RecentTagParams=RecentTagParams{

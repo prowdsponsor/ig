@@ -30,10 +30,15 @@ module Instagram
   ,Collection(..)
   
   -- user
+  ,getUser
+  ,SelfFeedParams(..)
+  ,getSelfFeed
   ,RecentParams(..)
   ,getRecent
   ,SelfLikedParams(..)
   ,getSelfLiked
+  ,UserSearchParams(..)
+  ,searchUsers
   
   -- real time
   ,Aspect -- do not export constructor since only media is supported
