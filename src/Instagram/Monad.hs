@@ -15,6 +15,8 @@ module Instagram.Monad (
   ,getJSONEnvelope
   ,getGetEnvelope
   ,getGetEnvelopeM
+  ,getPostEnvelope
+  ,getPostEnvelopeM
   ,getManager
   ,runResourceInIs
   ,mapInstagramT
@@ -161,6 +163,7 @@ igReq req extractError=do
       err=H.StatusCodeException status headers cookies
 #if DEBUG
   (value,_)<-H.responseBody res C.$$+- zipSinks (sinkParser json) (sinkHandle stdout)
+  liftIO $ BSC.putStrLn ""
 #else  
   value<-H.responseBody res C.$$+- sinkParser json
 #endif
@@ -192,25 +195,50 @@ getJSONEnvelope :: forall (m :: * -> *) v.
                                  H.Request (InstagramT m)
                                  -> InstagramT
                                       m (Envelope v)
-getJSONEnvelope req=igReq req (eMeta::(Envelope v->IGError)) -- we need the signature otherwise we get ambiguous type errors
+getJSONEnvelope req=igReq req eeMeta
 
 -- | get an envelope from Instagram
 getGetEnvelope :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
-  [T.Text] -- | the URL components, will be concatenated
-  -> AccessToken -- | the access token
-  -> ql -- | the query parameters
-  -> InstagramT m (Envelope v) -- | the resulting envelope
+  [T.Text] -- ^ the URL components, will be concatenated
+  -> OAuthToken -- ^ the access token
+  -> ql -- ^ the query parameters
+  -> InstagramT m (Envelope v) -- ^ the resulting envelope
 getGetEnvelope urlComponents token=getGetEnvelopeM urlComponents (Just token)
 
 -- | get an envelope from Instagram, with optional authentication
 getGetEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
-  [T.Text]  -- | the URL components, will be concatenated
-  -> Maybe AccessToken -- | the access token
-  -> ql -- | the query parameters
+  [T.Text]  -- ^ the URL components, will be concatenated
+  -> Maybe OAuthToken -- ^ the access token
+  -> ql -- ^ the query parameters
+  -> InstagramT m (Envelope v) -- ^ the resulting envelope
+getGetEnvelopeM=getEnvelopeM getGetRequest
+
+-- | post a request and get back an envelope from Instagram
+getPostEnvelope :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+  [T.Text] -- ^ the URL components, will be concatenated
+  -> OAuthToken -- ^ the access token
+  -> ql -- ^ the query parameters
+  -> InstagramT m (Envelope v) -- ^ the resulting envelope
+getPostEnvelope urlComponents token=getPostEnvelopeM urlComponents (Just token)
+
+-- | post a request and get back an envelope from Instagram, with optional authentication
+getPostEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+  [T.Text]  -- ^ the URL components, will be concatenated
+  -> Maybe OAuthToken -- ^ the access token
+  -> ql -- ^ the query parameters
+  -> InstagramT m (Envelope v) -- ^ the resulting envelope
+getPostEnvelopeM=getEnvelopeM getPostRequest
+
+-- | utility function to get an envelop, independently of how the request is built
+getEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+  (ByteString -> HT.Query -> InstagramT m (H.Request (InstagramT m))) -- ^ the request building method 
+  -> [T.Text]  -- ^ the URL components, will be concatenated
+  -> Maybe OAuthToken -- ^ the access token
+  -> ql -- ^ the query parameters
   -> InstagramT m (Envelope v) -- | the resulting envelope
-getGetEnvelopeM urlComponents token ql=do
+getEnvelopeM f urlComponents token ql=do
    let url=TE.encodeUtf8 $ T.concat urlComponents
-   addTokenM token ql >>= getGetRequest url >>= getJSONEnvelope  
+   addTokenM token ql >>= f url >>= getJSONEnvelope  
       
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager
@@ -241,13 +269,13 @@ isOkay status =
   in 200 <= sc && sc < 300
   
 -- | add the access token to the query
-addToken :: HT.QueryLike ql=> AccessToken -> ql -> HT.Query
-addToken (AccessToken t) ql=("access_token", Just $ TE.encodeUtf8 t) : HT.toQuery ql
+addToken :: HT.QueryLike ql=> OAuthToken -> ql -> HT.Query
+addToken (OAuthToken{oaAccessToken=(AccessToken t)}) ql=("access_token", Just $ TE.encodeUtf8 t) : HT.toQuery ql
 
 -- | add an optional access token to the query
 -- if we don't have a token, we'll pass the client_id
-addTokenM :: (C.MonadResource m, MonadBaseControl IO m,HT.QueryLike ql)=> Maybe AccessToken -> ql -> InstagramT m HT.Query
-addTokenM (Just at) ql=return $ addToken at ql
+addTokenM :: (C.MonadResource m, MonadBaseControl IO m,HT.QueryLike ql)=> Maybe OAuthToken -> ql -> InstagramT m HT.Query
+addTokenM (Just oat) ql=return $ addToken oat ql
 addTokenM _ ql= do
   cid<-liftM clientIDBS getCreds
   return $ ("client_id",Just cid) : HT.toQuery ql

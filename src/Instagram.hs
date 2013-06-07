@@ -60,11 +60,23 @@ module Instagram
   ,RecentTagParams(..)
   ,getRecentTagged
   ,searchTags
+  
+  -- relationships
+   ,OutgoingStatus(..)
+  ,IncomingStatus(..)
+  ,Relationship(..)
+  ,getFollows
+  ,getFollowedBy
+  ,getRequestedBy
+  ,getRelationship
+  ,setRelationShip
+  ,RelationShipAction(..)
   ) where
 
 import Instagram.Auth
 import Instagram.Monad
 import Instagram.RealTime
+import Instagram.Relationships
 import Instagram.Tags
 import Instagram.Types
 import Instagram.Users
@@ -78,7 +90,7 @@ import Instagram.Users
 --parse = do
 --  t<-BS.readFile "env1.json"
 --  let d=eitherDecode t
---  print (d::Either String (Envelope [Media]))
+--  print (d::Either String (Envelope Relationship))
 --  return()
---  
+  
   

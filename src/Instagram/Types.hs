@@ -10,6 +10,7 @@ module Instagram.Types (
   ,Scope(..)
   ,IGException(..)
   ,Envelope(..)
+  ,ErrEnvelope(..)
   ,IGError
   ,Pagination(..)
   ,Media(..)
@@ -26,6 +27,9 @@ module Instagram.Types (
   ,Subscription(..)
   ,Update(..)
   ,Tag(..)
+  ,OutgoingStatus(..)
+  ,IncomingStatus(..)
+  ,Relationship(..)
 )where
 
 import Control.Applicative
@@ -34,7 +38,7 @@ import Data.Typeable (Typeable)
 import Data.ByteString (ByteString)
 
 import Data.Aeson
-import Control.Monad (mzero)
+
 
 import qualified Data.Text.Encoding as TE
 import Control.Exception.Base (Exception)
@@ -141,11 +145,11 @@ data IGException = JSONException String -- ^ JSON parsingError
   
 instance Exception IGException 
 
--- | envelope for Instagram response
+-- | envelope for Instagram OK response
 data Envelope d=Envelope{
-  eMeta :: IGError,
-  eData :: d,
-  ePagination :: Maybe Pagination
+  eMeta :: IGError -- ^ this should only say 200, no error, but put here for completeness
+  ,eData :: d -- ^ data, garanteed to be present (otherwise we get an ErrEnvelope) 
+  ,ePagination :: Maybe Pagination
   }
   deriving (Show,Read,Eq,Ord,Typeable)
   
@@ -160,6 +164,22 @@ instance (FromJSON d)=>FromJSON (Envelope d) where
                          v .: "data" <*>
                          v .:? "pagination"
     parseJSON _= fail "Envelope"
+
+-- | error envelope for Instagram error response
+data ErrEnvelope=ErrEnvelope{
+  eeMeta :: IGError
+  }
+  deriving (Show,Read,Eq,Ord,Typeable)
+  
+-- | to json as per Instagram format    
+instance ToJSON ErrEnvelope  where
+    toJSON e=object ["meta" .= eeMeta e]  
+  
+-- | from json as per Instagram format
+instance FromJSON ErrEnvelope where
+    parseJSON (Object v) =ErrEnvelope <$>
+                         v .: "meta"
+    parseJSON _= fail "ErrEnvelope"
 
 -- | pagination info for responses that can return a lot of data  
 data Pagination = Pagination {
@@ -463,7 +483,7 @@ data Tag = Tag {
   tName :: Text,
   tMediaCount :: Integer
   }
-  deriving (Show,Eq,Ord,Typeable) 
+  deriving (Show,Read,Eq,Ord,Typeable) 
   
 -- | to json as per Instagram format    
 instance ToJSON Tag  where
@@ -475,3 +495,62 @@ instance FromJSON Tag where
                          v .: "name" <*>
                          v .:? "media_count" .!= 0
     parseJSON _= fail "Tag"      
+ 
+-- | outgoing relationship status   
+data OutgoingStatus = Follows | Requested | OutNone
+  deriving (Show,Read,Eq,Ord,Bounded,Enum,Typeable)
+
+-- | to json as per Instagram format 
+instance ToJSON OutgoingStatus  where
+    toJSON Follows = String "follows"
+    toJSON Requested = String "requested"
+    toJSON OutNone = String "none"
+
+-- | from json as per Instagram format
+instance FromJSON OutgoingStatus where
+  parseJSON (String "follows")=pure Follows
+  parseJSON (String "requested")=pure Requested
+  parseJSON (String "none")=pure OutNone
+  parseJSON _= fail "OutgoingStatus"  
+ 
+-- | incoming relationship status 
+data IncomingStatus = FollowedBy | RequestedBy | BlockedByYou | InNone
+  deriving (Show,Read,Eq,Ord,Bounded,Enum,Typeable)
+
+-- | to json as per Instagram format 
+instance ToJSON IncomingStatus  where
+    toJSON FollowedBy = String "followed_by"
+    toJSON RequestedBy = String "requested_by"
+    toJSON BlockedByYou = String "blocked_by_you"
+    toJSON InNone = String "none"
+
+-- | from json as per Instagram format
+instance FromJSON IncomingStatus where
+  parseJSON (String "followed_by")=pure FollowedBy
+  parseJSON (String "requested_by")=pure RequestedBy
+  parseJSON (String "blocked_by_you")=pure BlockedByYou
+  parseJSON (String "none")=pure InNone
+  parseJSON _= fail "IncomingStatus" 
+ 
+-- | a relationship between two users
+data Relationship = Relationship {
+  rOutgoing :: OutgoingStatus
+  ,rIncoming :: IncomingStatus
+  ,rTargetUserPrivate :: Bool -- ^ not present in doc
+  }
+  deriving (Show,Read,Eq,Ord,Typeable) 
+
+-- | to json as per Instagram format    
+instance ToJSON Relationship  where
+    toJSON r=object ["outgoing_status" .= rOutgoing r,"incoming_status" .= rIncoming r,"target_user_is_private" .= rTargetUserPrivate r] 
+
+-- | from json as per Instagram format
+instance FromJSON Relationship where
+    parseJSON (Object v) = Relationship <$>
+                         v .:? "outgoing_status" .!= OutNone <*>
+                         v .:? "incoming_status" .!= InNone <*>
+                         v .:? "target_user_is_private" .!= False
+    parseJSON _= fail "Tag"    
+    
+--outgoing_status: Your relationship to the user. Can be "follows", "requested", "none".
+--incoming_status: A user's relationship to you. Can be "followed_by", "requested_by", "blocked_by_you", "none".

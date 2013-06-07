@@ -69,6 +69,7 @@ library
                   Instagram.Auth,
                   Instagram.Users,
                   Instagram.RealTime,
-                  Instagram.Tags
+                  Instagram.Tags,
+                  Instagram.Relationships
   if flag(debug)
     cpp-options: -DDEBUG

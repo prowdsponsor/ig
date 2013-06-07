@@ -26,14 +26,14 @@ type TagName = T.Text
 -- | get a tag by name
 getTag :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> Maybe AccessToken
+  -> Maybe OAuthToken
   ->InstagramT m (Envelope (Maybe Tag))
 getTag name token=getGetEnvelopeM ["/v1/tags/",name] token ([]::HT.Query)
   
 -- | get media recently tagged by the given tag
 getRecentTagged :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> Maybe AccessToken
+  -> Maybe OAuthToken
   -> RecentTagParams
   ->InstagramT m (Envelope [Media])
 getRecentTagged name=getGetEnvelopeM ["/v1/tags/",name,"/media/recent/"]
@@ -41,7 +41,7 @@ getRecentTagged name=getGetEnvelopeM ["/v1/tags/",name,"/media/recent/"]
 -- | search tags with given prefix   
 searchTags :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> Maybe AccessToken
+  -> Maybe OAuthToken
   ->InstagramT m (Envelope [Tag])
 searchTags name token=getGetEnvelopeM ["/v1/tags/search"] token ([("q",TE.encodeUtf8 name)]::HT.SimpleQuery)
    

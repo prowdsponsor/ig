@@ -10,6 +10,7 @@ module Instagram.Users (
   ,getSelfLiked
   ,UserSearchParams(..)
   ,searchUsers
+  ,UserID
 ) where
 
 import Instagram.Monad
@@ -31,7 +32,7 @@ type UserID = T.Text
 
 -- | get user details
 getUser ::     (MonadBaseControl IO m, MonadResource m) => UserID 
-  -> Maybe AccessToken
+  -> Maybe OAuthToken
   -> InstagramT m (Envelope (Maybe User))
 getUser uid token  =getGetEnvelopeM ["/v1/users/",uid] token ([]::HT.Query)
   
@@ -58,7 +59,7 @@ getSelfFeed :: (MonadBaseControl IO m, MonadResource m) =>
   OAuthToken
   -> SelfFeedParams 
   -> InstagramT m (Envelope [Media])
-getSelfFeed token=getGetEnvelope ["/v1/users/self/feed/"] (oaAccessToken token) 
+getSelfFeed =getGetEnvelope ["/v1/users/self/feed/"] 
 
 -- | Parameters for call to recent media
 data RecentParams = RecentParams {
@@ -84,7 +85,7 @@ instance HT.QueryLike RecentParams where
     
 -- | get recent media    
 getRecent :: (MonadBaseControl IO m, MonadResource m) => UserID 
-  -> AccessToken
+  -> OAuthToken
   -> RecentParams 
   -> InstagramT m (Envelope [Media])
 getRecent uid=getGetEnvelope ["/v1/users/",uid,"/media/recent/"]
@@ -108,7 +109,7 @@ instance HT.QueryLike SelfLikedParams where
 getSelfLiked :: (MonadBaseControl IO m, MonadResource m) => OAuthToken 
   -> SelfLikedParams
   -> InstagramT m (Envelope [Media]) 
-getSelfLiked token =getGetEnvelope ["/v1/users/self/media/liked"] (oaAccessToken token) 
+getSelfLiked =getGetEnvelope ["/v1/users/self/media/liked"] 
 
 -- | parameters for self liked call
 data UserSearchParams = UserSearchParams {
@@ -123,7 +124,7 @@ instance HT.QueryLike UserSearchParams where
     ,("q",Just $ TE.encodeUtf8 q)] 
 
 -- | get media liked by logged in user
-searchUsers :: (MonadBaseControl IO m, MonadResource m) => Maybe AccessToken 
+searchUsers :: (MonadBaseControl IO m, MonadResource m) => Maybe OAuthToken 
   -> UserSearchParams
   -> InstagramT m (Envelope [User]) 
 searchUsers =getGetEnvelopeM ["/v1/users/search"]
