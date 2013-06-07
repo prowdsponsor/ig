@@ -55,6 +55,10 @@ library
      data-default,
      lifted-base,
      unordered-containers
+    , crypto-api >= 0.11 && < 0.13
+    , cryptohash >= 0.7
+    , cryptohash-cryptoapi == 0.1.*
+    , base16-bytestring    >= 0.1
   extensions:
     OverloadedStrings
     DeriveDataTypeable

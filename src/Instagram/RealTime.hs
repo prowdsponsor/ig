@@ -8,6 +8,7 @@ module Instagram.RealTime (
   ,SubscriptionRequest(..)
   ,SubscriptionParams(..)
   ,DeletionParams(..)
+  ,verifySignature
 )
 
 where
@@ -21,6 +22,14 @@ import qualified Network.HTTP.Types as HT
 import Data.Maybe (isJust)
 import Data.Conduit
 import Data.Aeson (Value(..))
+
+import qualified Data.ByteString.Base16 as Base16
+import qualified Crypto.Classes as Crypto
+import qualified Crypto.HMAC as Crypto
+import Crypto.Hash.CryptoAPI (SHA1)
+import Control.Monad (liftM)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 
 -- | create a subscription 
 createSubscription :: (MonadBaseControl IO m, MonadResource m) => 
@@ -117,3 +126,15 @@ instance HT.QueryLike DeletionParams where
   toQuery DeleteLocations=[("object",Just "location")]
   toQuery DeleteGeographies=[("object",Just "geography")]
   
+-- | verify the signature with the content, using the secret as the key
+verifySignature :: Monad m =>
+                              BS.ByteString -- ^ the signature
+                              -> BSL.ByteString -- ^ the content
+                              -> InstagramT m Bool
+verifySignature sig content=do
+  csecret<-liftM clientSecretBS getCreds
+  let key :: Crypto.MacKey ctx SHA1
+      key = Crypto.MacKey csecret -- secret is the key
+      hash = Crypto.hmac key content
+      expected = Base16.encode (Crypto.encode hash)
+  return $! sig `Crypto.constTimeEq` expected

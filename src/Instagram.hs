@@ -54,7 +54,8 @@ module Instagram
   ,SubscriptionParams(..)
   ,DeletionParams(..)
   ,Update(..)
-  
+  ,verifySignature
+    
   -- Tags
   ,Tag(..)
   ,TagName
@@ -104,6 +105,7 @@ module Instagram
   ,GeographyID
   ,GeographyMediaParams(..)
   ,getGeographyRecentMedia
+
   ) where
 
 import Instagram.Auth
