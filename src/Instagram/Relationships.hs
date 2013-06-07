@@ -11,7 +11,6 @@ module Instagram.Relationships (
 
 import Instagram.Monad
 import Instagram.Types
-import Instagram.Users
 
 import Data.Typeable (Typeable)
 
