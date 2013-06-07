@@ -91,11 +91,20 @@ module Instagram
   ,getLikes
   ,like
   ,unlike
+  
+  -- locations
+  ,LocationID
+  ,getLocation
+  ,LocationMediaParams(..)
+  ,getLocationRecentMedia
+  ,LocationSearchParams(..)
+  ,searchLocations
   ) where
 
 import Instagram.Auth
 import Instagram.Comments
 import Instagram.Likes
+import Instagram.Locations
 import Instagram.Media
 import Instagram.Monad
 import Instagram.RealTime

@@ -18,6 +18,7 @@ module Instagram.Types (
   ,Media(..)
   ,Position(..)
   ,UserPosition(..)
+  ,LocationID
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
@@ -48,6 +49,9 @@ import Data.Aeson
 import qualified Data.Text.Encoding as TE
 import Control.Exception.Base (Exception)
 import Data.Time.Clock.POSIX (POSIXTime)
+import qualified Data.Text as T (pack)
+import Data.Aeson.Types (Parser)
+import qualified Data.HashMap.Strict as HM (lookup)
 
 -- | the app credentials
 data Credentials = Credentials {
@@ -301,9 +305,12 @@ instance FromJSON UserPosition where
     v .: "user" 
   parseJSON _=fail "UserPosition"
 
+-- | location ID
+type LocationID = Text
+
 -- | geographical location info
 data Location = Location {
-  lID :: Maybe Integer
+  lID :: Maybe LocationID
   ,lLatitude :: Maybe Double
   ,lLongitude :: Maybe Double
   ,lStreetAddress :: Maybe Text
@@ -317,12 +324,21 @@ instance ToJSON Location where
   
 -- | from json as per Instagram format
 instance FromJSON Location where
-  parseJSON (Object v) = Location <$>
-    v .:? "id" <*>
-    v .:? "latitude" <*>
-    v .:? "longitude" <*>
-    v .:? "street_address" <*>
-    v .:? "name"
+  parseJSON (Object v) = 
+    Location <$>
+      parseID v <*>
+      v .:? "latitude" <*>
+      v .:? "longitude" <*>
+      v .:? "street_address" <*>
+      v .:? "name"
+    where 
+      -- | the Instagram API hasn't made its mind up, sometimes location id is an int, sometimes a string
+      parseID :: Object -> Parser (Maybe LocationID)
+      parseID obj=case HM.lookup "id" obj of
+        Just (String s)->pure $ Just s
+        Just (Number n)->pure $ Just $ T.pack $ show n
+        Nothing->pure Nothing
+        _->fail "LocationID"
   parseJSON _= fail "Location"
   
 -- | data for a single image

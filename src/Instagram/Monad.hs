@@ -42,6 +42,7 @@ import Control.Monad.Trans.Control ( MonadTransControl(..), MonadBaseControl(..)
 import Control.Monad.Trans.Reader (ReaderT(..), ask, mapReaderT)
 import Data.Typeable (Typeable)
 import qualified Control.Monad.Trans.Resource as R
+import qualified Control.Exception.Lifted as L
 
 import qualified Data.Conduit as C
 import qualified Network.HTTP.Conduit as H
@@ -50,7 +51,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Char8 as BSC
 import Data.Aeson (json,fromJSON,Result(..),FromJSON)
-import Data.Conduit.Attoparsec (sinkParser)
+import Data.Conduit.Attoparsec (sinkParser, ParseError)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T (Text,concat)
@@ -165,24 +166,26 @@ igReq req extractError=do
       cookies = H.responseCookieJar res
       ok=isOkay status
       err=H.StatusCodeException status headers cookies
+  L.catch (do    
 #if DEBUG
-  (value,_)<-H.responseBody res C.$$+- zipSinks (sinkParser json) (sinkHandle stdout)
-  liftIO $ BSC.putStrLn ""
+    (value,_)<-H.responseBody res C.$$+- zipSinks (sinkParser json) (sinkHandle stdout)
+    liftIO $ BSC.putStrLn ""
 #else  
-  value<-H.responseBody res C.$$+- sinkParser json
+    value<-H.responseBody res C.$$+- sinkParser json
 #endif
-  if ok
-    then 
-        -- parse response as the expected value
-        case fromJSON value of
-          Success ot->return ot
-          Error jerr->throw $ JSONException jerr -- got an ok response we couldn't parse
-    else
-        -- parse response as an error
-        case fromJSON value of
-          Success ise-> throw $ IGAppException $ extractError ise
-          _ -> throw err -- we can't even parse the error, throw the HTTP error
-
+    if ok
+      then 
+          -- parse response as the expected value
+          case fromJSON value of
+            Success ot->return ot
+            Error jerr->throw $ JSONException jerr -- got an ok response we couldn't parse
+      else
+          -- parse response as an error
+          case fromJSON value of
+            Success ise-> throw $ IGAppException $ extractError ise
+            _ -> throw err -- we can't even parse the error, throw the HTTP error
+    ) (\(_::ParseError)->throw err) -- the error body wasn't even json
+  
 -- | get a JSON response from a request to Instagram
 -- instagram returns either a result, or an error
 getJSONResponse :: forall (m :: * -> *) v.

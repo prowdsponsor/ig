@@ -50,7 +50,9 @@ library
      , attoparsec-conduit   == 1.0.*
      , aeson                >= 0.5     && < 0.7,
      time,
-     data-default
+     data-default,
+     lifted-base,
+     unordered-containers
   extensions:
     OverloadedStrings
     DeriveDataTypeable
@@ -73,6 +75,7 @@ library
                   Instagram.Relationships,
                   Instagram.Media,
                   Instagram.Comments,
-                  Instagram.Likes
+                  Instagram.Likes,
+                  Instagram.Locations
   if flag(debug)
     cpp-options: -DDEBUG
