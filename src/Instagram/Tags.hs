@@ -1,8 +1,8 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | tag operations
+-- <http://instagram.com/developer/endpoints/tags/#>
 module Instagram.Tags (
-  TagName
-  ,getTag
+  getTag
   ,RecentTagParams(..)
   ,getRecentTagged
   ,searchTags
@@ -11,46 +11,37 @@ module Instagram.Tags (
 import Instagram.Monad
 import Instagram.Types
 
-import qualified Data.Text.Encoding as TE
 import qualified Network.HTTP.Types as HT 
 
-import qualified Data.Text as T (Text,concat)
+import qualified Data.Text as T (Text)
 import Data.Conduit
 import Data.Typeable
 import Data.Default
 import Data.Maybe (isJust)
 
--- | Tag Name
-type TagName = T.Text
-
--- | get a tag by name
+-- | Get information about a tag object. 
 getTag :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> AccessToken
+  -> Maybe OAuthToken
   ->InstagramT m (Envelope (Maybe Tag))
-getTag name token=do
-  let url=TE.encodeUtf8 $ T.concat ["/v1/tags/",name]
-  getGetRequest url (addToken token ([]::HT.Query))>>= getJSONEnvelope
+getTag name token=getGetEnvelopeM ["/v1/tags/",name] token ([]::HT.Query)
   
--- | get media recently tagged by the given tag
+-- | Get a list of recently tagged media.
 getRecentTagged :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> AccessToken
+  -> Maybe OAuthToken
   -> RecentTagParams
   ->InstagramT m (Envelope [Media])
-getRecentTagged name token rtp=do
-   let url=TE.encodeUtf8 $ T.concat ["/v1/tags/",name,"/media/recent/"]
-   getGetRequest url (addToken token rtp)>>= getJSONEnvelope
+getRecentTagged name=getGetEnvelopeM ["/v1/tags/",name,"/media/recent/"]
 
--- | search tags with given prefix   
+-- | Search for tags by name. 
 searchTags :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
-  -> AccessToken
+  -> Maybe OAuthToken
   ->InstagramT m (Envelope [Tag])
-searchTags name token=
- getGetRequest "/v1/tags/search" (addToken token ([("q",TE.encodeUtf8 name)]::HT.SimpleQuery))>>= getJSONEnvelope   
+searchTags name token=getGetEnvelopeM ["/v1/tags/search"] token ["q" ?+ name]
    
--- | parameters for tag pagination   
+-- | parameters for recent tag pagination   
 data RecentTagParams=RecentTagParams{
   rtpMaxID :: Maybe T.Text
   ,rtpMinID :: Maybe T.Text
@@ -61,6 +52,6 @@ instance Default RecentTagParams where
  
 instance HT.QueryLike RecentTagParams where
   toQuery (RecentTagParams maxI minI)=filter (isJust .snd) 
-    [("max_tag_id",fmap TE.encodeUtf8 maxI)
-    ,("min_tag_id",fmap TE.encodeUtf8 minI)]
+    ["max_tag_id" ?+ maxI
+    ,"min_tag_id" ?+ minI]
 
