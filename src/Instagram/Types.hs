@@ -134,7 +134,7 @@ data IGError = IGError {
   }
   deriving (Show,Read,Eq,Ord,Typeable)
   
- -- | to json as per Instagram format    
+-- | to json as per Instagram format    
 instance ToJSON IGError  where
     toJSON e=object ["code" .= igeCode e, "error_type" .= igeType e , "error_message" .= igeMessage e] 
 
@@ -150,7 +150,8 @@ instance FromJSON IGError where
 data IGException = JSONException String -- ^ JSON parsingError
   | IGAppException IGError -- ^ application exception
   deriving (Show,Typeable)
-  
+
+-- | make our exception type a normal exception  
 instance Exception IGException 
 
 -- | envelope for Instagram OK response
@@ -364,9 +365,10 @@ instance FromJSON Images where
     v .: "standard_resolution"
   parseJSON _= fail "Images"  
  
+-- | comment id
 type CommentID = Text
  
--- Commenton on a medium
+-- | Commenton on a medium
 data Comment = Comment {
   cID :: CommentID
   ,cCreated :: POSIXTime
@@ -432,6 +434,7 @@ instance FromJSON Aspect where
 media :: Aspect
 media = Aspect "media"
 
+-- | a subscription to a real time notification
 data Subscription= Subscription {
   sID :: Text
   ,sType :: Text

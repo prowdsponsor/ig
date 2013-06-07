@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | handle the authorization mecanism for Instagram
+-- <http://instagram.com/developer/authentication/#>
 module Instagram.Auth (
   RedirectUri,
   getUserAccessTokenURL1,

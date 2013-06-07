@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | Real time subscription management
+-- <http://instagram.com/developer/realtime/#>
 module Instagram.RealTime (
   createSubscription
   ,listSubscriptions

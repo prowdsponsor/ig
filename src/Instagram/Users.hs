@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | Users end point handling
+-- <http://instagram.com/developer/endpoints/users/#>
 module Instagram.Users (
   getUser
   ,SelfFeedParams(..)
@@ -17,7 +18,7 @@ import Instagram.Types
 
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Typeable (Typeable)
-
+  
 import qualified Network.HTTP.Types as HT
 import Data.Maybe (isJust)
 import qualified Data.Text as T (Text)
@@ -26,13 +27,13 @@ import Data.Default
 
 
 
--- | get user details
+-- | Get basic information about a user. 
 getUser ::     (MonadBaseControl IO m, MonadResource m) => UserID 
   -> Maybe OAuthToken
   -> InstagramT m (Envelope (Maybe User))
 getUser uid token  =getGetEnvelopeM ["/v1/users/",uid] token ([]::HT.Query)
   
--- | Parameters for call to recent media
+-- | Parameters for call to self feed
 data SelfFeedParams = SelfFeedParams {
     sfpCount :: Maybe Integer,
     sfpMaxID :: Maybe T.Text,
@@ -50,7 +51,7 @@ instance HT.QueryLike SelfFeedParams where
     ,"min_id" ?+ minI]
     
     
--- | get recent media    
+-- |  See the authenticated user's feed.   
 getSelfFeed :: (MonadBaseControl IO m, MonadResource m) =>
   OAuthToken
   -> SelfFeedParams 
@@ -79,7 +80,7 @@ instance HT.QueryLike RecentParams where
     ,"min_id" ?+ minI]
     
     
--- | get recent media    
+-- | Get the most recent media published by a user. 
 getRecent :: (MonadBaseControl IO m, MonadResource m) => UserID 
   -> OAuthToken
   -> RecentParams 
@@ -101,7 +102,7 @@ instance HT.QueryLike SelfLikedParams where
     ["count" ?+ c 
     ,"max_like_id" ?+ maxI] 
 
--- | get media liked by logged in user
+-- | See the authenticated user's list of media they've liked.
 getSelfLiked :: (MonadBaseControl IO m, MonadResource m) => OAuthToken 
   -> SelfLikedParams
   -> InstagramT m (Envelope [Media]) 
@@ -119,7 +120,7 @@ instance HT.QueryLike UserSearchParams where
     ["count" ?+ c -- does not seem to be taken into account...
     ,"q" ?+ q] 
 
--- | get media liked by logged in user
+-- | Search for a user by name. 
 searchUsers :: (MonadBaseControl IO m, MonadResource m) => Maybe OAuthToken 
   -> UserSearchParams
   -> InstagramT m (Envelope [User]) 

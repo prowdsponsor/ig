@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | tag operations
+-- <http://instagram.com/developer/endpoints/tags/#>
 module Instagram.Tags (
   getTag
   ,RecentTagParams(..)
@@ -18,14 +19,14 @@ import Data.Typeable
 import Data.Default
 import Data.Maybe (isJust)
 
--- | get a tag by name
+-- | Get information about a tag object. 
 getTag :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
   -> Maybe OAuthToken
   ->InstagramT m (Envelope (Maybe Tag))
 getTag name token=getGetEnvelopeM ["/v1/tags/",name] token ([]::HT.Query)
   
--- | get media recently tagged by the given tag
+-- | Get a list of recently tagged media.
 getRecentTagged :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
   -> Maybe OAuthToken
@@ -33,14 +34,14 @@ getRecentTagged :: (MonadBaseControl IO m, MonadResource m) =>
   ->InstagramT m (Envelope [Media])
 getRecentTagged name=getGetEnvelopeM ["/v1/tags/",name,"/media/recent/"]
 
--- | search tags with given prefix   
+-- | Search for tags by name. 
 searchTags :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
   -> Maybe OAuthToken
   ->InstagramT m (Envelope [Tag])
 searchTags name token=getGetEnvelopeM ["/v1/tags/search"] token ["q" ?+ name]
    
--- | parameters for tag pagination   
+-- | parameters for recent tag pagination   
 data RecentTagParams=RecentTagParams{
   rtpMaxID :: Maybe T.Text
   ,rtpMinID :: Maybe T.Text

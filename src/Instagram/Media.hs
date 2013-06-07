@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | media handling
+-- <http://instagram.com/developer/endpoints/media/#>
 module Instagram.Media (
   getMedia
   ,getPopularMedia
@@ -17,19 +18,19 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Typeable (Typeable)
 import Data.Maybe (isJust)
 
--- | get information about a media object
+-- | Get information about a media object.
 getMedia ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
   -> Maybe OAuthToken
   -> InstagramT m (Envelope (Maybe Media))
 getMedia mid token  =getGetEnvelopeM ["/v1/media/",mid] token ([]::HT.Query)
 
--- | get a list of what media is most popular at the moment
+-- | Get a list of what media is most popular at the moment.
 getPopularMedia ::     (MonadBaseControl IO m, MonadResource m) =>
   Maybe OAuthToken
   -> InstagramT m (Envelope [Media])
 getPopularMedia token  =getGetEnvelopeM ["/v1/media/popular"] token ([]::HT.Query)  
 
--- | Parameters for call to recent media
+-- | Parameters for call to media search
 data MediaSearchParams = MediaSearchParams {
     mspLatitude ::  Maybe Double
     ,mspLongitude ::  Maybe Double
@@ -51,7 +52,7 @@ instance HT.QueryLike MediaSearchParams where
     ,"min_timestamp" ?+ minT
    ]
     
--- | search for media in a given area
+-- | Search for media in a given area.
 searchMedia :: (MonadBaseControl IO m, MonadResource m) =>
   Maybe OAuthToken
   -> MediaSearchParams

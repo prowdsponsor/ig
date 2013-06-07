@@ -255,7 +255,7 @@ getEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJS
   -> [T.Text]  -- ^ the URL components, will be concatenated
   -> Maybe OAuthToken -- ^ the access token
   -> ql -- ^ the query parameters
-  -> InstagramT m (Envelope v) -- | the resulting envelope
+  -> InstagramT m (Envelope v) -- ^ the resulting envelope
 getEnvelopeM f urlComponents token ql=do
    let url=TE.encodeUtf8 $ T.concat urlComponents
    addTokenM token ql >>= f url >>= getJSONEnvelope  
@@ -308,24 +308,25 @@ addClientInfos ql= do
   cid<-liftM clientIDBS getCreds
   csecret<-liftM clientSecretBS getCreds
   return $ ("client_id",Just cid):("client_secret", Just csecret) : HT.toQuery ql
-  
+
+-- | simple class used to hide the serialization of parameters ansd simplify the calling code  
 class ToHtQuery a where
   (?+) :: ByteString -> a -> (ByteString,Maybe ByteString)
 
 instance ToHtQuery Double where
-  n ?+ d=n ?+ (show d)
+  n ?+ d=n ?+ show d
 
 instance ToHtQuery (Maybe Double) where
-  n ?+ d=n ?+ (fmap show d)
+  n ?+ d=n ?+ fmap show d
 
 instance ToHtQuery Integer where
-  n ?+ d=n ?+ (show d)
+  n ?+ d=n ?+ show d
  
 instance ToHtQuery (Maybe Integer) where
-  n ?+ d=n ?+ (fmap show d)
+  n ?+ d=n ?+ fmap show d
     
 instance ToHtQuery (Maybe POSIXTime) where
-  n ?+ d=n ?+ (fmap (show . (round :: POSIXTime -> Integer)) d) 
+  n ?+ d=n ?+ fmap (show . (round :: POSIXTime -> Integer)) d
   
 instance ToHtQuery (Maybe T.Text) where
   n ?+ d=(n,fmap TE.encodeUtf8 d)

@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | relationship handling
+-- <http://instagram.com/developer/endpoints/relationships/#>
 module Instagram.Relationships (
   getFollows
   ,getFollowedBy
@@ -19,25 +20,25 @@ import Data.Conduit
 import Data.Char (toLower)
 
 
--- | get the list of users this user follows
+-- | Get the list of users this user follows.
 getFollows ::     (MonadBaseControl IO m, MonadResource m) => UserID 
   -> Maybe OAuthToken
   -> InstagramT m (Envelope [User])
 getFollows uid token  =getGetEnvelopeM ["/v1/users/",uid,"/follows"] token ([]::HT.Query)
 
--- | get the list of users this user is followed by
+-- | Get the list of users this user is followed by.
 getFollowedBy ::     (MonadBaseControl IO m, MonadResource m) => UserID 
   -> Maybe OAuthToken
   -> InstagramT m (Envelope [User])
 getFollowedBy uid token  =getGetEnvelopeM ["/v1/users/",uid,"/followed-by"] token ([]::HT.Query)
 
--- | list the users who have requested this user's permission to follow
+-- | List the users who have requested this user's permission to follow.
 getRequestedBy ::     (MonadBaseControl IO m, MonadResource m) =>  
    OAuthToken
   -> InstagramT m (Envelope [User])
 getRequestedBy token  =getGetEnvelope ["/v1/users/self/requested-by"] token ([]::HT.Query)
 
--- | get information about a relationship to another user. 
+-- | Get information about a relationship to another user. 
 getRelationship ::     (MonadBaseControl IO m, MonadResource m) => UserID 
   -> OAuthToken
   -> InstagramT m (Envelope Relationship)
@@ -54,9 +55,9 @@ data RelationShipAction =  Follow
   
 instance HT.QueryLike RelationShipAction where
   toQuery a=
-    ["action" ?+ (map toLower $ show a)] 
+    ["action" ?+ map toLower (show a)] 
   
--- | modify the relationship between the current user and the target user
+-- | Modify the relationship between the current user and the target user.
 setRelationShip :: (MonadBaseControl IO m, MonadResource m) => UserID 
   -> OAuthToken
   -> RelationShipAction

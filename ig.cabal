@@ -19,7 +19,7 @@ description:
   API, this package is being developed on demand. If you need
   something that has not been implemented yet, please send a pull
   request or file an issue on GitHub
-  (https://github.com/loyful/ig/issues).
+  (<https://github.com/loyful/ig/issues>).
 
 source-repository head
   type: git
