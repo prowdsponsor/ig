@@ -17,6 +17,8 @@ module Instagram.Monad (
   ,getGetEnvelopeM
   ,getPostEnvelope
   ,getPostEnvelopeM
+  ,getDeleteEnvelope
+  ,getDeleteEnvelopeM
   ,getManager
   ,runResourceInIs
   ,mapInstagramT
@@ -214,6 +216,22 @@ getGetEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,Fro
   -> ql -- ^ the query parameters
   -> InstagramT m (Envelope v) -- ^ the resulting envelope
 getGetEnvelopeM=getEnvelopeM getGetRequest
+
+-- | send a delete and get an envelope from Instagram
+getDeleteEnvelope :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+  [T.Text] -- ^ the URL components, will be concatenated
+  -> OAuthToken -- ^ the access token
+  -> ql -- ^ the query parameters
+  -> InstagramT m (Envelope v) -- ^ the resulting envelope
+getDeleteEnvelope urlComponents token=getDeleteEnvelopeM urlComponents (Just token)
+
+-- | send a delete and get an envelope from Instagram, with optional authentication
+getDeleteEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+  [T.Text]  -- ^ the URL components, will be concatenated
+  -> Maybe OAuthToken -- ^ the access token
+  -> ql -- ^ the query parameters
+  -> InstagramT m (Envelope v) -- ^ the resulting envelope
+getDeleteEnvelopeM=getEnvelopeM getDeleteRequest
 
 -- | post a request and get back an envelope from Instagram
 getPostEnvelope :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>

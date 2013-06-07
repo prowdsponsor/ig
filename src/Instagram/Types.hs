@@ -21,7 +21,8 @@ module Instagram.Types (
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
-  ,Caption(..)
+  ,CommentID
+  ,Comment(..)
   ,Collection(..)
   ,Aspect(..)
   ,media
@@ -217,7 +218,7 @@ type MediaID=Text
 -- | instagram media object
 data Media = Media {
   mID :: MediaID
-  ,mCaption :: Maybe Caption
+  ,mCaption :: Maybe Comment
   ,mLink :: Text
   ,mUser :: User 
   ,mCreated :: POSIXTime
@@ -227,7 +228,7 @@ data Media = Media {
   ,mFilter :: Maybe Text
   ,mTags :: [Text]
   ,mLocation :: Maybe Location
-  ,mComments :: Collection Caption
+  ,mComments :: Collection Comment
   ,mLikes :: Collection User
   ,mUserHasLiked :: Bool
   ,mAttribution :: Maybe Object -- ^ seems to be open format https://groups.google.com/forum/?fromgroups#!topic/instagram-api-developers/KvGH1cnjljQ
@@ -362,25 +363,27 @@ instance FromJSON Images where
     v .: "standard_resolution"
   parseJSON _= fail "Images"  
  
--- | caption on a medium
-data Caption = Caption {
-  cID :: Text
+type CommentID = Text
+ 
+-- Commenton on a medium
+data Comment = Comment {
+  cID :: CommentID
   ,cCreated :: POSIXTime
   ,cText :: Text
   ,cFrom :: User
   }
   deriving (Show,Eq,Ord,Typeable) 
 
--- | to json as per Instagram format    
-instance ToJSON Caption  where
+-- | to json asCommentstagram format    
+instance ToJSON Comment  where
     toJSON c=object ["id" .= cID c,"created_time" .= toJSON (show ((round $ cCreated c) :: Integer))
       ,"text" .= cText c,"from" .= cFrom c] 
 
--- | from json as per Instagram format
-instance FromJSON Caption where
+-- | from json asCommentstagram format
+instance FromJSON Comment where
     parseJSON (Object v) =do
       ct::String<-v .: "created_time"
-      Caption <$>
+      Comment <$>
                          v .: "id" <*>
                          pure (fromIntegral (read ct::Integer)) <*>
                          v .: "text" <*>

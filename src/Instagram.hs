@@ -26,7 +26,7 @@ module Instagram
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
-  ,Caption(..)
+  ,Comment(..)
   ,Collection(..)
   
   -- user
@@ -79,9 +79,17 @@ module Instagram
   ,getPopularMedia
   ,MediaSearchParams(..)
   ,searchMedia
+  
+  -- comment
+  ,CommentID
+  ,getComments
+  ,postComment
+  ,deleteComment
+  
   ) where
 
 import Instagram.Auth
+import Instagram.Comments
 import Instagram.Media
 import Instagram.Monad
 import Instagram.RealTime
