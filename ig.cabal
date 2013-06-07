@@ -20,6 +20,8 @@ description:
   something that has not been implemented yet, please send a pull
   request or file an issue on GitHub
   (<https://github.com/loyful/ig/issues>).
+  .
+  A sample Yesod application demonstrating the API can be found at <https://github.com/loyful/ig-testapp>.
 
 source-repository head
   type: git
