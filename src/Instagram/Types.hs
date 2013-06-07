@@ -14,6 +14,7 @@ module Instagram.Types (
   ,ErrEnvelope(..)
   ,IGError
   ,Pagination(..)
+  ,MediaID
   ,Media(..)
   ,Position(..)
   ,UserPosition(..)
@@ -210,9 +211,12 @@ instance FromJSON Pagination where
                          v .:? "min_tag_id"
     parseJSON _= fail "Pagination"  
   
+-- | Media ID
+type MediaID=Text
+  
 -- | instagram media object
 data Media = Media {
-  mID :: Text
+  mID :: MediaID
   ,mCaption :: Maybe Caption
   ,mLink :: Text
   ,mUser :: User 
@@ -297,8 +301,8 @@ instance FromJSON UserPosition where
 -- | geographical location info
 data Location = Location {
   lID :: Maybe Integer
-  ,lLatitude :: Double
-  ,lLongitude :: Double
+  ,lLatitude :: Maybe Double
+  ,lLongitude :: Maybe Double
   ,lStreetAddress :: Maybe Text
   ,lName :: Maybe Text
   }  
@@ -312,8 +316,8 @@ instance ToJSON Location where
 instance FromJSON Location where
   parseJSON (Object v) = Location <$>
     v .:? "id" <*>
-    v .: "latitude" <*>
-    v .: "longitude" <*>
+    v .:? "latitude" <*>
+    v .:? "longitude" <*>
     v .:? "street_address" <*>
     v .:? "name"
   parseJSON _= fail "Location"

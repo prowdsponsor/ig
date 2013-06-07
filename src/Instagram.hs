@@ -72,9 +72,17 @@ module Instagram
   ,getRelationship
   ,setRelationShip
   ,RelationShipAction(..)
+  
+  -- media
+  ,MediaID
+  ,getMedia
+  ,getPopularMedia
+  ,MediaSearchParams(..)
+  ,searchMedia
   ) where
 
 import Instagram.Auth
+import Instagram.Media
 import Instagram.Monad
 import Instagram.RealTime
 import Instagram.Relationships
@@ -91,7 +99,7 @@ import Instagram.Users
 --parse = do
 --  t<-BS.readFile "env1.json"
 --  let d=eitherDecode t
---  print (d::Either String (Envelope Relationship))
+--  print (d::Either String (Envelope [Media]))
 --  return()
   
   

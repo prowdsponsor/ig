@@ -70,6 +70,7 @@ library
                   Instagram.Users,
                   Instagram.RealTime,
                   Instagram.Tags,
-                  Instagram.Relationships
+                  Instagram.Relationships,
+                  Instagram.Media
   if flag(debug)
     cpp-options: -DDEBUG
