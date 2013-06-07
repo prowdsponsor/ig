@@ -26,14 +26,21 @@ module Instagram
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
-  ,Caption(..)
+  ,Comment(..)
   ,Collection(..)
+  ,NoResult
   
   -- user
+  ,UserID
+  ,getUser
+  ,SelfFeedParams(..)
+  ,getSelfFeed
   ,RecentParams(..)
   ,getRecent
   ,SelfLikedParams(..)
   ,getSelfLiked
+  ,UserSearchParams(..)
+  ,searchUsers
   
   -- real time
   ,Aspect -- do not export constructor since only media is supported
@@ -47,7 +54,8 @@ module Instagram
   ,SubscriptionParams(..)
   ,DeletionParams(..)
   ,Update(..)
-  
+  ,verifySignature
+    
   -- Tags
   ,Tag(..)
   ,TagName
@@ -55,11 +63,60 @@ module Instagram
   ,RecentTagParams(..)
   ,getRecentTagged
   ,searchTags
+  
+  -- relationships
+   ,OutgoingStatus(..)
+  ,IncomingStatus(..)
+  ,Relationship(..)
+  ,getFollows
+  ,getFollowedBy
+  ,getRequestedBy
+  ,getRelationship
+  ,setRelationShip
+  ,RelationShipAction(..)
+  
+  -- media
+  ,MediaID
+  ,getMedia
+  ,getPopularMedia
+  ,MediaSearchParams(..)
+  ,searchMedia
+  
+  -- comments
+  ,CommentID
+  ,getComments
+  ,postComment
+  ,deleteComment
+  
+  -- likes
+  ,getLikes
+  ,like
+  ,unlike
+  
+  -- locations
+  ,LocationID
+  ,getLocation
+  ,LocationMediaParams(..)
+  ,getLocationRecentMedia
+  ,LocationSearchParams(..)
+  ,searchLocations
+  
+  -- geographies
+  ,GeographyID
+  ,GeographyMediaParams(..)
+  ,getGeographyRecentMedia
+
   ) where
 
 import Instagram.Auth
+import Instagram.Comments
+import Instagram.Geographies
+import Instagram.Likes
+import Instagram.Locations
+import Instagram.Media
 import Instagram.Monad
 import Instagram.RealTime
+import Instagram.Relationships
 import Instagram.Tags
 import Instagram.Types
 import Instagram.Users
@@ -75,5 +132,5 @@ import Instagram.Users
 --  let d=eitherDecode t
 --  print (d::Either String (Envelope [Media]))
 --  return()
---  
+  
   

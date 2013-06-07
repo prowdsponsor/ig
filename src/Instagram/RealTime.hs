@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | Real time subscription management
+-- <http://instagram.com/developer/realtime/#>
 module Instagram.RealTime (
   createSubscription
   ,listSubscriptions
@@ -7,6 +8,7 @@ module Instagram.RealTime (
   ,SubscriptionRequest(..)
   ,SubscriptionParams(..)
   ,DeletionParams(..)
+  ,verifySignature
 )
 
 where
@@ -14,14 +16,20 @@ where
 import Instagram.Monad
 import Instagram.Types
 
-import Data.ByteString.Char8(pack)
 import Data.Text (Text)
 import Data.Typeable
 import qualified Network.HTTP.Types as HT 
-import qualified Data.Text.Encoding as TE
 import Data.Maybe (isJust)
 import Data.Conduit
 import Data.Aeson (Value(..))
+
+import qualified Data.ByteString.Base16 as Base16
+import qualified Crypto.Classes as Crypto
+import qualified Crypto.HMAC as Crypto
+import Crypto.Hash.CryptoAPI (SHA1)
+import Control.Monad (liftM)
+import qualified Data.ByteString as BS
+import qualified Data.ByteString.Lazy as BSL
 
 -- | create a subscription 
 createSubscription :: (MonadBaseControl IO m, MonadResource m) => 
@@ -58,9 +66,9 @@ data SubscriptionParams= SubscriptionParams {
 -- | to HTTP query  
 instance HT.QueryLike SubscriptionParams where
   toQuery (SubscriptionParams req cb (Aspect asp) tok)=filter (isJust .snd) $ HT.toQuery req ++ 
-    [("aspect",Just $ TE.encodeUtf8 asp)
-    ,("callback_url",Just $ TE.encodeUtf8 cb)
-    ,("verify_token",fmap TE.encodeUtf8 tok)]
+    ["aspect" ?+ asp
+    ,"callback_url" ?+ cb
+    ,"verify_token" ?+ tok]
 
 -- | details of subscription request  
 data SubscriptionRequest
@@ -85,11 +93,11 @@ data SubscriptionRequest
 -- | to HTTP query    
 instance HT.QueryLike SubscriptionRequest where
   toQuery UserRequest=[("object",Just "user")]
-  toQuery (TagRequest tag)=[("object",Just "tag"),("object_id",Just $ TE.encodeUtf8 tag)]
-  toQuery (LocationRequest i)=[("object",Just "location"),("object_id",Just $ TE.encodeUtf8 i)]
-  toQuery (GeographyRequest lat lng rad)=[("object",Just "geography"),("lat",Just $ pack $ show lat)
-    ,("lng",Just $ pack $ show lng)
-    ,("radius",Just $ pack $ show rad)]
+  toQuery (TagRequest tag)=[("object",Just "tag"),"object_id" ?+ tag]
+  toQuery (LocationRequest i)=[("object",Just "location"),"object_id" ?+ i]
+  toQuery (GeographyRequest lat lng rad)=[("object",Just "geography"),"lat" ?+ lat
+    ,"lng" ?+ lng
+    ,"radius" ?+ rad]
  
 -- | deletion parameters 
 data DeletionParams
@@ -112,9 +120,21 @@ data DeletionParams
 -- | to HTTP query    
 instance HT.QueryLike DeletionParams where
   toQuery DeleteAll=[("object",Just "all")]
-  toQuery (DeleteOne i)=[("id",Just $ TE.encodeUtf8  i)]
+  toQuery (DeleteOne i)=["id" ?+ i]
   toQuery DeleteUsers=[("object",Just "user")]
   toQuery DeleteTags=[("object",Just "tag")]
   toQuery DeleteLocations=[("object",Just "location")]
   toQuery DeleteGeographies=[("object",Just "geography")]
   
+-- | verify the signature with the content, using the secret as the key
+verifySignature :: Monad m =>
+                              BS.ByteString -- ^ the signature
+                              -> BSL.ByteString -- ^ the content
+                              -> InstagramT m Bool
+verifySignature sig content=do
+  csecret<-liftM clientSecretBS getCreds
+  let key :: Crypto.MacKey ctx SHA1
+      key = Crypto.MacKey csecret -- secret is the key
+      hash = Crypto.hmac key content
+      expected = Base16.encode (Crypto.encode hash)
+  return $! sig `Crypto.constTimeEq` expected

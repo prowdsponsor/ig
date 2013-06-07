@@ -6,26 +6,37 @@ module Instagram.Types (
   ,clientSecretBS
   ,OAuthToken(..)
   ,AccessToken(..)
+  ,UserID
   ,User(..)
   ,Scope(..)
   ,IGException(..)
   ,Envelope(..)
+  ,ErrEnvelope(..)
   ,IGError
   ,Pagination(..)
+  ,MediaID
   ,Media(..)
   ,Position(..)
   ,UserPosition(..)
+  ,LocationID
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
-  ,Caption(..)
+  ,CommentID
+  ,Comment(..)
   ,Collection(..)
   ,Aspect(..)
   ,media
   ,CallbackUrl
   ,Subscription(..)
   ,Update(..)
+  ,TagName
   ,Tag(..)
+  ,OutgoingStatus(..)
+  ,IncomingStatus(..)
+  ,Relationship(..)
+  ,NoResult
+  ,GeographyID
 )where
 
 import Control.Applicative
@@ -34,11 +45,14 @@ import Data.Typeable (Typeable)
 import Data.ByteString (ByteString)
 
 import Data.Aeson
-import Control.Monad (mzero)
+
 
 import qualified Data.Text.Encoding as TE
 import Control.Exception.Base (Exception)
 import Data.Time.Clock.POSIX (POSIXTime)
+import qualified Data.Text as T (pack)
+import Data.Aeson.Types (Parser)
+import qualified Data.HashMap.Strict as HM (lookup)
 
 -- | the app credentials
 data Credentials = Credentials {
@@ -86,9 +100,12 @@ instance FromJSON  AccessToken where
         parseJSON (String s)=pure $ AccessToken s
         parseJSON _= fail "AccessToken"
 
+-- | User ID
+type UserID = Text
+
 -- | the User partial profile returned by the authentication        
 data User = User {
-        uID :: Text,
+        uID :: UserID,
         uUsername :: Text,
         uFullName :: Text,
         uProfilePicture :: Maybe Text,
@@ -122,7 +139,7 @@ data IGError = IGError {
   }
   deriving (Show,Read,Eq,Ord,Typeable)
   
- -- | to json as per Instagram format    
+-- | to json as per Instagram format    
 instance ToJSON IGError  where
     toJSON e=object ["code" .= igeCode e, "error_type" .= igeType e , "error_message" .= igeMessage e] 
 
@@ -138,14 +155,15 @@ instance FromJSON IGError where
 data IGException = JSONException String -- ^ JSON parsingError
   | IGAppException IGError -- ^ application exception
   deriving (Show,Typeable)
-  
+
+-- | make our exception type a normal exception  
 instance Exception IGException 
 
--- | envelope for Instagram response
+-- | envelope for Instagram OK response
 data Envelope d=Envelope{
-  eMeta :: IGError,
-  eData :: d,
-  ePagination :: Maybe Pagination
+  eMeta :: IGError -- ^ this should only say 200, no error, but put here for completeness
+  ,eData :: d -- ^ data, garanteed to be present (otherwise we get an ErrEnvelope) 
+  ,ePagination :: Maybe Pagination
   }
   deriving (Show,Read,Eq,Ord,Typeable)
   
@@ -160,6 +178,22 @@ instance (FromJSON d)=>FromJSON (Envelope d) where
                          v .: "data" <*>
                          v .:? "pagination"
     parseJSON _= fail "Envelope"
+
+-- | error envelope for Instagram error response
+data ErrEnvelope=ErrEnvelope{
+  eeMeta :: IGError
+  }
+  deriving (Show,Read,Eq,Ord,Typeable)
+  
+-- | to json as per Instagram format    
+instance ToJSON ErrEnvelope  where
+    toJSON e=object ["meta" .= eeMeta e]  
+  
+-- | from json as per Instagram format
+instance FromJSON ErrEnvelope where
+    parseJSON (Object v) =ErrEnvelope <$>
+                         v .: "meta"
+    parseJSON _= fail "ErrEnvelope"
 
 -- | pagination info for responses that can return a lot of data  
 data Pagination = Pagination {
@@ -185,10 +219,13 @@ instance FromJSON Pagination where
                          v .:? "min_tag_id"
     parseJSON _= fail "Pagination"  
   
+-- | Media ID
+type MediaID=Text
+  
 -- | instagram media object
 data Media = Media {
-  mID :: Text
-  ,mCaption :: Maybe Caption
+  mID :: MediaID
+  ,mCaption :: Maybe Comment
   ,mLink :: Text
   ,mUser :: User 
   ,mCreated :: POSIXTime
@@ -198,7 +235,7 @@ data Media = Media {
   ,mFilter :: Maybe Text
   ,mTags :: [Text]
   ,mLocation :: Maybe Location
-  ,mComments :: Collection Caption
+  ,mComments :: Collection Comment
   ,mLikes :: Collection User
   ,mUserHasLiked :: Bool
   ,mAttribution :: Maybe Object -- ^ seems to be open format https://groups.google.com/forum/?fromgroups#!topic/instagram-api-developers/KvGH1cnjljQ
@@ -269,11 +306,14 @@ instance FromJSON UserPosition where
     v .: "user" 
   parseJSON _=fail "UserPosition"
 
+-- | location ID
+type LocationID = Text
+
 -- | geographical location info
 data Location = Location {
-  lID :: Maybe Integer
-  ,lLatitude :: Double
-  ,lLongitude :: Double
+  lID :: Maybe LocationID
+  ,lLatitude :: Maybe Double
+  ,lLongitude :: Maybe Double
   ,lStreetAddress :: Maybe Text
   ,lName :: Maybe Text
   }  
@@ -285,12 +325,21 @@ instance ToJSON Location where
   
 -- | from json as per Instagram format
 instance FromJSON Location where
-  parseJSON (Object v) = Location <$>
-    v .:? "id" <*>
-    v .: "latitude" <*>
-    v .: "longitude" <*>
-    v .:? "street_address" <*>
-    v .:? "name"
+  parseJSON (Object v) = 
+    Location <$>
+      parseID v <*>
+      v .:? "latitude" <*>
+      v .:? "longitude" <*>
+      v .:? "street_address" <*>
+      v .:? "name"
+    where 
+      -- | the Instagram API hasn't made its mind up, sometimes location id is an int, sometimes a string
+      parseID :: Object -> Parser (Maybe LocationID)
+      parseID obj=case HM.lookup "id" obj of
+        Just (String s)->pure $ Just s
+        Just (Number n)->pure $ Just $ T.pack $ show n
+        Nothing->pure Nothing
+        _->fail "LocationID"
   parseJSON _= fail "Location"
   
 -- | data for a single image
@@ -333,25 +382,28 @@ instance FromJSON Images where
     v .: "standard_resolution"
   parseJSON _= fail "Images"  
  
--- | caption on a medium
-data Caption = Caption {
-  cID :: Text
+-- | comment id
+type CommentID = Text
+ 
+-- | Commenton on a medium
+data Comment = Comment {
+  cID :: CommentID
   ,cCreated :: POSIXTime
   ,cText :: Text
   ,cFrom :: User
   }
   deriving (Show,Eq,Ord,Typeable) 
 
--- | to json as per Instagram format    
-instance ToJSON Caption  where
+-- | to json asCommentstagram format    
+instance ToJSON Comment  where
     toJSON c=object ["id" .= cID c,"created_time" .= toJSON (show ((round $ cCreated c) :: Integer))
       ,"text" .= cText c,"from" .= cFrom c] 
 
--- | from json as per Instagram format
-instance FromJSON Caption where
+-- | from json asCommentstagram format
+instance FromJSON Comment where
     parseJSON (Object v) =do
       ct::String<-v .: "created_time"
-      Caption <$>
+      Comment <$>
                          v .: "id" <*>
                          pure (fromIntegral (read ct::Integer)) <*>
                          v .: "text" <*>
@@ -399,6 +451,7 @@ instance FromJSON Aspect where
 media :: Aspect
 media = Aspect "media"
 
+-- | a subscription to a real time notification
 data Subscription= Subscription {
   sID :: Text
   ,sType :: Text
@@ -458,12 +511,15 @@ instance FromJSON Update where
                          pure (fromIntegral ct)
     parseJSON _= fail "Update"    
 
+-- | Tag Name
+type TagName = Text
+
 -- | a Tag  
 data Tag = Tag {
-  tName :: Text,
+  tName :: TagName,
   tMediaCount :: Integer
   }
-  deriving (Show,Eq,Ord,Typeable) 
+  deriving (Show,Read,Eq,Ord,Typeable) 
   
 -- | to json as per Instagram format    
 instance ToJSON Tag  where
@@ -475,3 +531,77 @@ instance FromJSON Tag where
                          v .: "name" <*>
                          v .:? "media_count" .!= 0
     parseJSON _= fail "Tag"      
+ 
+-- | outgoing relationship status   
+data OutgoingStatus = Follows | Requested | OutNone
+  deriving (Show,Read,Eq,Ord,Bounded,Enum,Typeable)
+
+-- | to json as per Instagram format 
+instance ToJSON OutgoingStatus  where
+    toJSON Follows = String "follows"
+    toJSON Requested = String "requested"
+    toJSON OutNone = String "none"
+
+-- | from json as per Instagram format
+instance FromJSON OutgoingStatus where
+  parseJSON (String "follows")=pure Follows
+  parseJSON (String "requested")=pure Requested
+  parseJSON (String "none")=pure OutNone
+  parseJSON _= fail "OutgoingStatus"  
+ 
+-- | incoming relationship status 
+data IncomingStatus = FollowedBy | RequestedBy | BlockedByYou | InNone
+  deriving (Show,Read,Eq,Ord,Bounded,Enum,Typeable)
+
+-- | to json as per Instagram format 
+instance ToJSON IncomingStatus  where
+    toJSON FollowedBy = String "followed_by"
+    toJSON RequestedBy = String "requested_by"
+    toJSON BlockedByYou = String "blocked_by_you"
+    toJSON InNone = String "none"
+
+-- | from json as per Instagram format
+instance FromJSON IncomingStatus where
+  parseJSON (String "followed_by")=pure FollowedBy
+  parseJSON (String "requested_by")=pure RequestedBy
+  parseJSON (String "blocked_by_you")=pure BlockedByYou
+  parseJSON (String "none")=pure InNone
+  parseJSON _= fail "IncomingStatus" 
+ 
+-- | a relationship between two users
+data Relationship = Relationship {
+  rOutgoing :: OutgoingStatus
+  ,rIncoming :: IncomingStatus
+  ,rTargetUserPrivate :: Bool -- ^ not present in doc
+  }
+  deriving (Show,Read,Eq,Ord,Typeable) 
+
+-- | to json as per Instagram format    
+instance ToJSON Relationship  where
+    toJSON r=object ["outgoing_status" .= rOutgoing r,"incoming_status" .= rIncoming r,"target_user_is_private" .= rTargetUserPrivate r] 
+
+-- | from json as per Instagram format
+instance FromJSON Relationship where
+    parseJSON (Object v) = Relationship <$>
+                         v .:? "outgoing_status" .!= OutNone <*>
+                         v .:? "incoming_status" .!= InNone <*>
+                         v .:? "target_user_is_private" .!= False
+    parseJSON _= fail "Relationship"    
+
+-- | Instagram returns data:null for nothing, but Aeson considers that () maps to an empty array...
+-- so we model the fact that we expect null via NoResult    
+data NoResult = NoResult
+  deriving (Show,Read,Eq,Ord,Typeable)
+
+-- | to json as per Instagram format  
+instance ToJSON NoResult  where
+  toJSON _=Null
+
+-- | from json as per Instagram format
+instance FromJSON NoResult where
+    parseJSON Null = pure NoResult   
+    parseJSON _= fail "NoResult"  
+
+-- | geography ID 
+type GeographyID = Text
+

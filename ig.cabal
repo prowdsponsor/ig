@@ -19,7 +19,9 @@ description:
   API, this package is being developed on demand. If you need
   something that has not been implemented yet, please send a pull
   request or file an issue on GitHub
-  (https://github.com/loyful/ig/issues).
+  (<https://github.com/loyful/ig/issues>).
+  .
+  A sample Yesod application demonstrating the API can be found at <https://github.com/loyful/ig-testapp>.
 
 source-repository head
   type: git
@@ -50,7 +52,13 @@ library
      , attoparsec-conduit   == 1.0.*
      , aeson                >= 0.5     && < 0.7,
      time,
-     data-default
+     data-default,
+     lifted-base,
+     unordered-containers
+    , crypto-api >= 0.11 && < 0.13
+    , cryptohash >= 0.7
+    , cryptohash-cryptoapi == 0.1.*
+    , base16-bytestring    >= 0.1
   extensions:
     OverloadedStrings
     DeriveDataTypeable
@@ -69,6 +77,12 @@ library
                   Instagram.Auth,
                   Instagram.Users,
                   Instagram.RealTime,
-                  Instagram.Tags
+                  Instagram.Tags,
+                  Instagram.Relationships,
+                  Instagram.Media,
+                  Instagram.Comments,
+                  Instagram.Likes,
+                  Instagram.Locations,
+                  Instagram.Geographies
   if flag(debug)
     cpp-options: -DDEBUG
