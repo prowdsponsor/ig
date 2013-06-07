@@ -10,7 +10,6 @@ module Instagram.Users (
   ,getSelfLiked
   ,UserSearchParams(..)
   ,searchUsers
-  ,UserID
 ) where
 
 import Instagram.Monad
@@ -27,8 +26,7 @@ import Data.Conduit
 import qualified Data.Text.Encoding as TE
 import Data.Default
 
--- | User ID
-type UserID = T.Text
+
 
 -- | get user details
 getUser ::     (MonadBaseControl IO m, MonadResource m) => UserID 

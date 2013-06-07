@@ -1,8 +1,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 -- | tag operations
 module Instagram.Tags (
-  TagName
-  ,getTag
+  getTag
   ,RecentTagParams(..)
   ,getRecentTagged
   ,searchTags
@@ -19,9 +18,6 @@ import Data.Conduit
 import Data.Typeable
 import Data.Default
 import Data.Maybe (isJust)
-
--- | Tag Name
-type TagName = T.Text
 
 -- | get a tag by name
 getTag :: (MonadBaseControl IO m, MonadResource m) =>

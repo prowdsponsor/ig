@@ -6,6 +6,7 @@ module Instagram.Types (
   ,clientSecretBS
   ,OAuthToken(..)
   ,AccessToken(..)
+  ,UserID
   ,User(..)
   ,Scope(..)
   ,IGException(..)
@@ -26,6 +27,7 @@ module Instagram.Types (
   ,CallbackUrl
   ,Subscription(..)
   ,Update(..)
+  ,TagName
   ,Tag(..)
   ,OutgoingStatus(..)
   ,IncomingStatus(..)
@@ -90,9 +92,12 @@ instance FromJSON  AccessToken where
         parseJSON (String s)=pure $ AccessToken s
         parseJSON _= fail "AccessToken"
 
+-- | User ID
+type UserID = Text
+
 -- | the User partial profile returned by the authentication        
 data User = User {
-        uID :: Text,
+        uID :: UserID,
         uUsername :: Text,
         uFullName :: Text,
         uProfilePicture :: Maybe Text,
@@ -478,9 +483,12 @@ instance FromJSON Update where
                          pure (fromIntegral ct)
     parseJSON _= fail "Update"    
 
+-- | Tag Name
+type TagName = Text
+
 -- | a Tag  
 data Tag = Tag {
-  tName :: Text,
+  tName :: TagName,
   tMediaCount :: Integer
   }
   deriving (Show,Read,Eq,Ord,Typeable) 

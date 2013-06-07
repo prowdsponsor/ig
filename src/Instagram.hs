@@ -30,6 +30,7 @@ module Instagram
   ,Collection(..)
   
   -- user
+  ,UserID
   ,getUser
   ,SelfFeedParams(..)
   ,getSelfFeed
