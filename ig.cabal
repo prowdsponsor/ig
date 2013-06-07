@@ -76,6 +76,7 @@ library
                   Instagram.Media,
                   Instagram.Comments,
                   Instagram.Likes,
-                  Instagram.Locations
+                  Instagram.Locations,
+                  Instagram.Geographies
   if flag(debug)
     cpp-options: -DDEBUG

@@ -99,10 +99,16 @@ module Instagram
   ,getLocationRecentMedia
   ,LocationSearchParams(..)
   ,searchLocations
+  
+  -- geographies
+  ,GeographyID
+  ,GeographyMediaParams(..)
+  ,getGeographyRecentMedia
   ) where
 
 import Instagram.Auth
 import Instagram.Comments
+import Instagram.Geographies
 import Instagram.Likes
 import Instagram.Locations
 import Instagram.Media

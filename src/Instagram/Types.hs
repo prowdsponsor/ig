@@ -36,6 +36,7 @@ module Instagram.Types (
   ,IncomingStatus(..)
   ,Relationship(..)
   ,NoResult
+  ,GeographyID
 )where
 
 import Control.Applicative
@@ -600,4 +601,7 @@ instance ToJSON NoResult  where
 instance FromJSON NoResult where
     parseJSON Null = pure NoResult   
     parseJSON _= fail "NoResult"  
- 
+
+-- | geography ID 
+type GeographyID = Text
+
