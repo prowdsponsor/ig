@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+-- | media handling
 module Instagram.Media (
   getMedia
   ,getPopularMedia

@@ -28,6 +28,7 @@ module Instagram
   ,Images(..)
   ,Comment(..)
   ,Collection(..)
+  ,NoResult
   
   -- user
   ,UserID
@@ -80,16 +81,21 @@ module Instagram
   ,MediaSearchParams(..)
   ,searchMedia
   
-  -- comment
+  -- comments
   ,CommentID
   ,getComments
   ,postComment
   ,deleteComment
   
+  -- likes
+  ,getLikes
+  ,like
+  ,unlike
   ) where
 
 import Instagram.Auth
 import Instagram.Comments
+import Instagram.Likes
 import Instagram.Media
 import Instagram.Monad
 import Instagram.RealTime

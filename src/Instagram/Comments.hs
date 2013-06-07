@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleContexts #-}
+-- | comments handling
 module Instagram.Comments (
   getComments
   ,postComment
@@ -22,12 +23,12 @@ getComments mid token  =getGetEnvelopeM ["/v1/media/",mid,"/comments"] token ([]
 postComment ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
   -> OAuthToken
   -> Text
-  -> InstagramT m (Envelope ())
+  -> InstagramT m (Envelope NoResult)
 postComment mid token txt =getPostEnvelope ["/v1/media/",mid,"/comments"] token ["text" ?+ txt]
 
--- | create a comment on a media
+-- | remove a comment either on the authenticated user's media or authored by the authenticated user
 deleteComment ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
   -> CommentID
   -> OAuthToken
-  -> InstagramT m (Envelope ())
+  -> InstagramT m (Envelope NoResult)
 deleteComment mid cid token =getDeleteEnvelope ["/v1/media/",mid,"/comments/",cid] token ([]::HT.Query)

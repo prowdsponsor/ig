@@ -72,6 +72,7 @@ library
                   Instagram.Tags,
                   Instagram.Relationships,
                   Instagram.Media,
-                  Instagram.Comments
+                  Instagram.Comments,
+                  Instagram.Likes
   if flag(debug)
     cpp-options: -DDEBUG

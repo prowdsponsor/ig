@@ -34,6 +34,7 @@ module Instagram.Types (
   ,OutgoingStatus(..)
   ,IncomingStatus(..)
   ,Relationship(..)
+  ,NoResult
 )where
 
 import Control.Applicative
@@ -565,7 +566,19 @@ instance FromJSON Relationship where
                          v .:? "outgoing_status" .!= OutNone <*>
                          v .:? "incoming_status" .!= InNone <*>
                          v .:? "target_user_is_private" .!= False
-    parseJSON _= fail "Tag"    
-    
---outgoing_status: Your relationship to the user. Can be "follows", "requested", "none".
---incoming_status: A user's relationship to you. Can be "followed_by", "requested_by", "blocked_by_you", "none".
+    parseJSON _= fail "Relationship"    
+
+-- | Instagram returns data:null for nothing, but Aeson considers that () maps to an empty array...
+-- so we model the fact that we expect null via NoResult    
+data NoResult = NoResult
+  deriving (Show,Read,Eq,Ord,Typeable)
+
+-- | to json as per Instagram format  
+instance ToJSON NoResult  where
+  toJSON _=Null
+
+-- | from json as per Instagram format
+instance FromJSON NoResult where
+    parseJSON Null = pure NoResult   
+    parseJSON _= fail "NoResult"  
+ 
