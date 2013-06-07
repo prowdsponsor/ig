@@ -14,11 +14,9 @@ where
 import Instagram.Monad
 import Instagram.Types
 
-import Data.ByteString.Char8(pack)
 import Data.Text (Text)
 import Data.Typeable
 import qualified Network.HTTP.Types as HT 
-import qualified Data.Text.Encoding as TE
 import Data.Maybe (isJust)
 import Data.Conduit
 import Data.Aeson (Value(..))
@@ -58,9 +56,9 @@ data SubscriptionParams= SubscriptionParams {
 -- | to HTTP query  
 instance HT.QueryLike SubscriptionParams where
   toQuery (SubscriptionParams req cb (Aspect asp) tok)=filter (isJust .snd) $ HT.toQuery req ++ 
-    [("aspect",Just $ TE.encodeUtf8 asp)
-    ,("callback_url",Just $ TE.encodeUtf8 cb)
-    ,("verify_token",fmap TE.encodeUtf8 tok)]
+    ["aspect" ?+ asp
+    ,"callback_url" ?+ cb
+    ,"verify_token" ?+ tok]
 
 -- | details of subscription request  
 data SubscriptionRequest
@@ -85,11 +83,11 @@ data SubscriptionRequest
 -- | to HTTP query    
 instance HT.QueryLike SubscriptionRequest where
   toQuery UserRequest=[("object",Just "user")]
-  toQuery (TagRequest tag)=[("object",Just "tag"),("object_id",Just $ TE.encodeUtf8 tag)]
-  toQuery (LocationRequest i)=[("object",Just "location"),("object_id",Just $ TE.encodeUtf8 i)]
-  toQuery (GeographyRequest lat lng rad)=[("object",Just "geography"),("lat",Just $ pack $ show lat)
-    ,("lng",Just $ pack $ show lng)
-    ,("radius",Just $ pack $ show rad)]
+  toQuery (TagRequest tag)=[("object",Just "tag"),"object_id" ?+ tag]
+  toQuery (LocationRequest i)=[("object",Just "location"),"object_id" ?+ i]
+  toQuery (GeographyRequest lat lng rad)=[("object",Just "geography"),"lat" ?+ lat
+    ,"lng" ?+ lng
+    ,"radius" ?+ rad]
  
 -- | deletion parameters 
 data DeletionParams
@@ -112,7 +110,7 @@ data DeletionParams
 -- | to HTTP query    
 instance HT.QueryLike DeletionParams where
   toQuery DeleteAll=[("object",Just "all")]
-  toQuery (DeleteOne i)=[("id",Just $ TE.encodeUtf8  i)]
+  toQuery (DeleteOne i)=["id" ?+ i]
   toQuery DeleteUsers=[("object",Just "user")]
   toQuery DeleteTags=[("object",Just "tag")]
   toQuery DeleteLocations=[("object",Just "location")]

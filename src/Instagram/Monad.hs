@@ -23,6 +23,7 @@ module Instagram.Monad (
   ,addToken
   ,addTokenM
   ,addClientInfos
+  ,ToHtQuery(..)
   ) where
 
 import Instagram.Types
@@ -51,6 +52,7 @@ import Data.Conduit.Attoparsec (sinkParser)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text as T (Text,concat)
+import Data.Time.Clock.POSIX (POSIXTime)
 
 #if DEBUG
 import Data.Conduit.Binary (sinkHandle)
@@ -288,4 +290,34 @@ addClientInfos ql= do
   cid<-liftM clientIDBS getCreds
   csecret<-liftM clientSecretBS getCreds
   return $ ("client_id",Just cid):("client_secret", Just csecret) : HT.toQuery ql
+  
+class ToHtQuery a where
+  (?+) :: ByteString -> a -> (ByteString,Maybe ByteString)
+
+instance ToHtQuery Double where
+  n ?+ d=n ?+ (show d)
+
+instance ToHtQuery (Maybe Double) where
+  n ?+ d=n ?+ (fmap show d)
+
+instance ToHtQuery Integer where
+  n ?+ d=n ?+ (show d)
+ 
+instance ToHtQuery (Maybe Integer) where
+  n ?+ d=n ?+ (fmap show d)
+    
+instance ToHtQuery (Maybe POSIXTime) where
+  n ?+ d=n ?+ (fmap (show . (round :: POSIXTime -> Integer)) d) 
+  
+instance ToHtQuery (Maybe T.Text) where
+  n ?+ d=(n,fmap TE.encodeUtf8 d)
+
+instance ToHtQuery T.Text where
+  n ?+ d=(n,Just $ TE.encodeUtf8 d)
+  
+instance ToHtQuery (Maybe String) where
+  n ?+ d=(n,fmap BSC.pack d)  
+
+instance ToHtQuery String where
+  n ?+ d=(n,Just $ BSC.pack d)    
   

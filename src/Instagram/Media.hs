@@ -15,7 +15,6 @@ import Data.Default (Default(..))
 import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Typeable (Typeable)
 import Data.Maybe (isJust)
-import Data.ByteString.Char8(pack)
 
 -- | get information about a media object
 getMedia ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
@@ -44,11 +43,11 @@ instance Default MediaSearchParams where
   
 instance HT.QueryLike MediaSearchParams where
   toQuery (MediaSearchParams lat long dis maxT minT )=filter (isJust .snd) 
-    [("lat",fmap (pack . show) lat)
-    ,("lng",fmap (pack . show) long)
-    ,("distance",fmap (pack . show) dis)
-    ,("max_timestamp",fmap (pack . show . round) maxT)
-    ,("min_timestamp",fmap (pack . show . round) minT)
+    ["lat" ?+ lat
+    ,"lng" ?+ long
+    ,"distance" ?+ dis
+    ,"max_timestamp" ?+ maxT
+    ,"min_timestamp" ?+ minT
    ]
     
 -- | search for media in a given area

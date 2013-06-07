@@ -10,7 +10,6 @@ module Instagram.Tags (
 import Instagram.Monad
 import Instagram.Types
 
-import qualified Data.Text.Encoding as TE
 import qualified Network.HTTP.Types as HT 
 
 import qualified Data.Text as T (Text)
@@ -39,7 +38,7 @@ searchTags :: (MonadBaseControl IO m, MonadResource m) =>
   TagName
   -> Maybe OAuthToken
   ->InstagramT m (Envelope [Tag])
-searchTags name token=getGetEnvelopeM ["/v1/tags/search"] token ([("q",TE.encodeUtf8 name)]::HT.SimpleQuery)
+searchTags name token=getGetEnvelopeM ["/v1/tags/search"] token ["q" ?+ name]
    
 -- | parameters for tag pagination   
 data RecentTagParams=RecentTagParams{
@@ -52,6 +51,6 @@ instance Default RecentTagParams where
  
 instance HT.QueryLike RecentTagParams where
   toQuery (RecentTagParams maxI minI)=filter (isJust .snd) 
-    [("max_tag_id",fmap TE.encodeUtf8 maxI)
-    ,("min_tag_id",fmap TE.encodeUtf8 minI)]
+    ["max_tag_id" ?+ maxI
+    ,"min_tag_id" ?+ minI]
 

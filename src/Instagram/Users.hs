@@ -19,11 +19,9 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import Data.Typeable (Typeable)
 
 import qualified Network.HTTP.Types as HT
-import Data.ByteString.Char8 (pack)
 import Data.Maybe (isJust)
 import qualified Data.Text as T (Text)
 import Data.Conduit
-import qualified Data.Text.Encoding as TE
 import Data.Default
 
 
@@ -36,7 +34,7 @@ getUser uid token  =getGetEnvelopeM ["/v1/users/",uid] token ([]::HT.Query)
   
 -- | Parameters for call to recent media
 data SelfFeedParams = SelfFeedParams {
-    sfpCount :: Maybe Int,
+    sfpCount :: Maybe Integer,
     sfpMaxID :: Maybe T.Text,
     sfpMinId :: Maybe T.Text
   }
@@ -47,9 +45,9 @@ instance Default SelfFeedParams where
   
 instance HT.QueryLike SelfFeedParams where
   toQuery (SelfFeedParams c maxI minI)=filter (isJust .snd) 
-    [("count",fmap (pack . show) c)
-    ,("max_id",fmap TE.encodeUtf8 maxI)
-    ,("min_id",fmap TE.encodeUtf8 minI)]
+    ["count" ?+ c
+    ,"max_id" ?+ maxI
+    ,"min_id" ?+ minI]
     
     
 -- | get recent media    
@@ -61,7 +59,7 @@ getSelfFeed =getGetEnvelope ["/v1/users/self/feed/"]
 
 -- | Parameters for call to recent media
 data RecentParams = RecentParams {
-    rpCount :: Maybe Int,
+    rpCount :: Maybe Integer,
     rpMaxTimestamp :: Maybe POSIXTime,
     rpMinTimestamp :: Maybe POSIXTime,
     rpMaxID :: Maybe T.Text,
@@ -74,11 +72,11 @@ instance Default RecentParams where
   
 instance HT.QueryLike RecentParams where
   toQuery (RecentParams c maxT minT maxI minI)=filter (isJust .snd) 
-    [("count",fmap (pack . show) c)
-    ,("max_timestamp",fmap (pack . show . round) maxT)
-    ,("min_timestamp",fmap (pack . show . round) minT)
-    ,("max_id",fmap TE.encodeUtf8 maxI)
-    ,("min_id",fmap TE.encodeUtf8 minI)]
+    ["count" ?+ c
+    ,"max_timestamp" ?+ maxT
+    ,"min_timestamp" ?+ minT
+    ,"max_id" ?+ maxI
+    ,"min_id" ?+ minI]
     
     
 -- | get recent media    
@@ -90,7 +88,7 @@ getRecent uid=getGetEnvelope ["/v1/users/",uid,"/media/recent/"]
 
 -- | parameters for self liked call
 data SelfLikedParams = SelfLikedParams {
-  slpCount :: Maybe Int,
+  slpCount :: Maybe Integer,
   slpMaxLikeID :: Maybe T.Text
   }
   deriving (Show,Typeable)
@@ -100,8 +98,8 @@ instance Default SelfLikedParams where
   
 instance HT.QueryLike SelfLikedParams where
   toQuery (SelfLikedParams c maxI)=filter (isJust .snd) 
-    [("count",fmap (pack . show) c) 
-    ,("max_like_id",fmap TE.encodeUtf8 maxI)] 
+    ["count" ?+ c 
+    ,"max_like_id" ?+ maxI] 
 
 -- | get media liked by logged in user
 getSelfLiked :: (MonadBaseControl IO m, MonadResource m) => OAuthToken 
@@ -112,14 +110,14 @@ getSelfLiked =getGetEnvelope ["/v1/users/self/media/liked"]
 -- | parameters for self liked call
 data UserSearchParams = UserSearchParams {
   uspQuery :: T.Text,
-  uspCount :: Maybe Int
+  uspCount :: Maybe Integer
   }
   deriving (Show,Typeable)
   
 instance HT.QueryLike UserSearchParams where
   toQuery (UserSearchParams q c )=filter (isJust .snd) 
-    [("count",fmap (pack . show) c) -- does not seem to be taken into account...
-    ,("q",Just $ TE.encodeUtf8 q)] 
+    ["count" ?+ c -- does not seem to be taken into account...
+    ,"q" ?+ q] 
 
 -- | get media liked by logged in user
 searchUsers :: (MonadBaseControl IO m, MonadResource m) => Maybe OAuthToken 

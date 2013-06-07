@@ -17,7 +17,7 @@ import Data.Typeable (Typeable)
 import qualified Network.HTTP.Types as HT
 import Data.Conduit
 import Data.Char (toLower)
-import Data.ByteString.Char8 (pack)
+
 
 -- | get the list of users this user follows
 getFollows ::     (MonadBaseControl IO m, MonadResource m) => UserID 
@@ -54,7 +54,7 @@ data RelationShipAction =  Follow
   
 instance HT.QueryLike RelationShipAction where
   toQuery a=
-    [("action", Just $ pack $ map toLower $ show a)] 
+    ["action" ?+ (map toLower $ show a)] 
   
 -- | modify the relationship between the current user and the target user
 setRelationShip :: (MonadBaseControl IO m, MonadResource m) => UserID 
