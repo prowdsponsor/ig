@@ -1,0 +1,85 @@
+--- oldmonad.hs	2014-01-15 12:29:47.823914878 -0500
++++ src/Instagram/Monad.hs	2014-01-15 12:25:21.246592987 -0500
+@@ -41,6 +41,7 @@
+                                    , defaultRestoreM )
+ import Control.Monad.Trans.Reader (ReaderT(..), ask, mapReaderT)
+ import Data.Typeable (Typeable)
++import Data.Default
+ import qualified Control.Monad.Trans.Resource as R
+ import qualified Control.Exception.Lifted as L
+ 
+@@ -103,10 +104,10 @@
+ -- | build a post request to Instagram
+ getPostRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
+   -> q -- ^ the query parameters
+-  -> InstagramT m (H.Request a) -- ^ the properly configured request
++  -> InstagramT m H.Request -- ^ the properly configured request
+ getPostRequest path query=do
+   host<-getHost
+-  return $ H.def {
++  return $ def {
+                      H.secure=True
+                      , H.host = host
+                      , H.port = 443
+@@ -118,14 +119,14 @@
+ -- | build a get request to Instagram
+ getGetRequest :: (Monad m,MonadIO m,HT.QueryLike q) => ByteString -- ^ the url path
+   -> q -- ^ the query parameters
+-  -> InstagramT m (H.Request a) -- ^ the properly configured request
++  -> InstagramT m H.Request -- ^ the properly configured request
+ getGetRequest path query=do
+   host<-getHost
+   let qs=HT.renderQuery True $ HT.toQuery query
+ #if DEBUG
+   liftIO $ BSC.putStrLn $ BS.append path qs
+ #endif  
+-  return $ H.def {
++  return $ def {
+                      H.secure=True
+                      , H.host = host
+                      , H.port = 443
+@@ -137,7 +138,7 @@
+ -- | build a delete request  to Instagram
+ getDeleteRequest :: (Monad m,MonadIO m,HT.QueryLike q) => ByteString -- ^ the url path
+   -> q -- ^ the query parameters
+-  -> InstagramT m (H.Request a) -- ^ the properly configured request
++  -> InstagramT m H.Request -- ^ the properly configured request
+ getDeleteRequest path query=do
+   get<-getGetRequest path query
+   return $ get {H.method=HT.methodDelete}
+@@ -153,7 +154,7 @@
+ -- | perform a HTTP request and deal with the JSON result
+ igReq :: forall b (m :: * -> *) wrappedErr .
+                     (MonadBaseControl IO m, C.MonadResource m,FromJSON b,FromJSON wrappedErr) =>
+-                    H.Request (InstagramT m)
++                    H.Request
+                     -> (wrappedErr -> IGError) -- ^ extract the error from the JSON
+                     -> InstagramT m b
+ igReq req extractError=do
+@@ -190,7 +191,7 @@
+ -- instagram returns either a result, or an error
+ getJSONResponse :: forall (m :: * -> *) v.
+                                  (MonadBaseControl IO m, C.MonadResource m,FromJSON v) =>
+-                                 H.Request (InstagramT m)
++                                 H.Request
+                                  -> InstagramT
+                                       m v
+ getJSONResponse req=igReq req id
+@@ -199,7 +200,7 @@
+ -- the error is wrapped inside the envelope
+ getJSONEnvelope :: forall (m :: * -> *) v.
+                                  (MonadBaseControl IO m, C.MonadResource m,FromJSON v) =>
+-                                 H.Request (InstagramT m)
++                                 H.Request
+                                  -> InstagramT
+                                       m (Envelope v)
+ getJSONEnvelope req=igReq req eeMeta
+@@ -254,7 +255,7 @@
+ 
+ -- | utility function to get an envelop, independently of how the request is built
+ getEnvelopeM :: (MonadBaseControl IO m, C.MonadResource m,HT.QueryLike ql,FromJSON v) =>
+-  (ByteString -> HT.Query -> InstagramT m (H.Request (InstagramT m))) -- ^ the request building method 
++  (ByteString -> HT.Query -> InstagramT m H.Request) -- ^ the request building method 
+   -> [T.Text]  -- ^ the URL components, will be concatenated
+   -> Maybe OAuthToken -- ^ the access token
+   -> ql -- ^ the query parameters
