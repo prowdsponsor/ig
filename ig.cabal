@@ -4,9 +4,9 @@ synopsis:            Bindings to Instagram's API.
 homepage:            https://github.com/loyful/ig
 license:             BSD3
 license-file:        LICENSE
-author:              Felipe Lessa <felipe.lessa@loyful.com>, JP Moresmau <jpmoresmau@gmail.com>
-maintainer:          Loyful <opensource@loyful.com>
-copyright:           (c) 2013 Loyful
+author:              Felipe Lessa <felipe.lessa@prowdsponsor.com>, JP Moresmau <jpmoresmau@gmail.com>
+maintainer:          Prowdsponsor <opensource@prowdsponsor.com>
+copyright:           (c) 2013-2014 Prowdsponsor
 category:            Web
 build-type:          Simple
 cabal-version:       >=1.8
@@ -71,7 +71,7 @@ library
     -- TypeFamilies
     -- FlexibleInstances
     -- MultiParamTypeClasses
-  other-modules:  
+  other-modules:
                   Instagram.Types,
                   Instagram.Monad,
                   Instagram.Auth,
