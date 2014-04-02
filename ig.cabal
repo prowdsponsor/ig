@@ -1,7 +1,7 @@
 name:                ig
 version:             0.2.1
 synopsis:            Bindings to Instagram's API.
-homepage:            https://github.com/loyful/ig
+homepage:            https://github.com/prowdsponsor/ig
 license:             BSD3
 license-file:        LICENSE
 author:              Felipe Lessa <felipe.lessa@prowdsponsor.com>, JP Moresmau <jpmoresmau@gmail.com>
@@ -19,13 +19,13 @@ description:
   API, this package is being developed on demand. If you need
   something that has not been implemented yet, please send a pull
   request or file an issue on GitHub
-  (<https://github.com/loyful/ig/issues>).
+  (<https://github.com/prowdsponsor/ig/issues>).
   .
-  A sample Yesod application demonstrating the API can be found at <https://github.com/loyful/ig-testapp>.
+  A sample Yesod application demonstrating the API can be found at <https://github.com/prowdsponsor/ig-testapp>.
 
 source-repository head
   type: git
-  location: git://github.com/loyful/ig.git
+  location: git://github.com/prowdsponsor/ig.git
 
 flag debug
   default: False
