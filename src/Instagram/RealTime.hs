@@ -18,9 +18,8 @@ import Instagram.Types
 
 import Data.Text (Text)
 import Data.Typeable
-import qualified Network.HTTP.Types as HT 
+import qualified Network.HTTP.Types as HT
 import Data.Maybe (isJust)
-import Data.Conduit
 import Data.Aeson (Value(..))
 
 import qualified Data.ByteString.Base16 as Base16
@@ -31,29 +30,29 @@ import Control.Monad (liftM)
 import qualified Data.ByteString as BS
 import qualified Data.ByteString.Lazy as BSL
 
--- | create a subscription 
-createSubscription :: (MonadBaseControl IO m, MonadResource m) => 
+-- | create a subscription
+createSubscription :: (MonadBaseControl IO m, MonadResource m) =>
   SubscriptionParams -- ^ the subscription parameters
   -> InstagramT m (Envelope Subscription) -- ^ the created subscription
 createSubscription params=do
   let url="/v1/subscriptions/"
-  addClientInfos params >>= getPostRequest url >>= getJSONEnvelope  
+  addClientInfos params >>= getPostRequest url >>= getJSONEnvelope
 
 -- | list all subscriptions for the application
-listSubscriptions :: (MonadBaseControl IO m, MonadResource m) => 
+listSubscriptions :: (MonadBaseControl IO m, MonadResource m) =>
   InstagramT m (Envelope [Subscription]) -- ^ the ID of the subscription
 listSubscriptions =do
   let url="/v1/subscriptions/"
-  addClientInfos ([]::HT.Query) >>= getGetRequest url >>= getJSONEnvelope  
+  addClientInfos ([]::HT.Query) >>= getGetRequest url >>= getJSONEnvelope
 
 -- | delete subscriptions based on criteria
-deleteSubscriptions :: (MonadBaseControl IO m, MonadResource m) => 
+deleteSubscriptions :: (MonadBaseControl IO m, MonadResource m) =>
   DeletionParams -- ^ the parameters for the deletion
   -> InstagramT m (Envelope Value) -- ^ the ID of the subscription
 deleteSubscriptions params=do
   let url="/v1/subscriptions/"
-  addClientInfos params >>= getDeleteRequest url >>= getJSONEnvelope  
- 
+  addClientInfos params >>= getDeleteRequest url >>= getJSONEnvelope
+
 -- | parameters for the subscription creation
 data SubscriptionParams= SubscriptionParams {
   spRequest :: SubscriptionRequest -- ^ the actual subscription request
@@ -63,14 +62,14 @@ data SubscriptionParams= SubscriptionParams {
   }
   deriving (Read,Show,Eq,Ord,Typeable)
 
--- | to HTTP query  
+-- | to HTTP query
 instance HT.QueryLike SubscriptionParams where
-  toQuery (SubscriptionParams req cb (Aspect asp) tok)=filter (isJust .snd) $ HT.toQuery req ++ 
+  toQuery (SubscriptionParams req cb (Aspect asp) tok)=filter (isJust .snd) $ HT.toQuery req ++
     ["aspect" ?+ asp
     ,"callback_url" ?+ cb
     ,"verify_token" ?+ tok]
 
--- | details of subscription request  
+-- | details of subscription request
 data SubscriptionRequest
   -- | when a user uploads a picture
   =UserRequest
@@ -87,10 +86,10 @@ data SubscriptionRequest
     grLatitude :: Double
     ,grLongitude :: Double
     ,grRadius :: Integer
-    }  
+    }
     deriving (Read,Show,Eq,Ord,Typeable)
 
--- | to HTTP query    
+-- | to HTTP query
 instance HT.QueryLike SubscriptionRequest where
   toQuery UserRequest=[("object",Just "user")]
   toQuery (TagRequest tag)=[("object",Just "tag"),"object_id" ?+ tag]
@@ -98,8 +97,8 @@ instance HT.QueryLike SubscriptionRequest where
   toQuery (GeographyRequest lat lng rad)=[("object",Just "geography"),"lat" ?+ lat
     ,"lng" ?+ lng
     ,"radius" ?+ rad]
- 
--- | deletion parameters 
+
+-- | deletion parameters
 data DeletionParams
   -- | delete all subscriptions
   =DeleteAll
@@ -111,13 +110,13 @@ data DeletionParams
   | DeleteUsers
   -- | delete all tag subscriptions
   | DeleteTags
-  -- | delete all location subscriptions  
+  -- | delete all location subscriptions
   | DeleteLocations
-  -- | delete all geography subscriptions  
+  -- | delete all geography subscriptions
   | DeleteGeographies
    deriving (Read,Show,Eq,Ord,Typeable)
 
--- | to HTTP query    
+-- | to HTTP query
 instance HT.QueryLike DeletionParams where
   toQuery DeleteAll=[("object",Just "all")]
   toQuery (DeleteOne i)=["id" ?+ i]
@@ -125,7 +124,7 @@ instance HT.QueryLike DeletionParams where
   toQuery DeleteTags=[("object",Just "tag")]
   toQuery DeleteLocations=[("object",Just "location")]
   toQuery DeleteGeographies=[("object",Just "geography")]
-  
+
 -- | verify the signature with the content, using the secret as the key
 verifySignature :: Monad m =>
                               BS.ByteString -- ^ the signature

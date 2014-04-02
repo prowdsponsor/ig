@@ -11,7 +11,6 @@ module Instagram.Media (
 import Instagram.Monad
 import Instagram.Types
 
-import Data.Conduit
 import qualified Network.HTTP.Types as HT
 import Data.Default (Default(..))
 import Data.Time.Clock.POSIX (POSIXTime)
@@ -19,7 +18,7 @@ import Data.Typeable (Typeable)
 import Data.Maybe (isJust)
 
 -- | Get information about a media object.
-getMedia ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
+getMedia ::     (MonadBaseControl IO m, MonadResource m) => MediaID
   -> Maybe OAuthToken
   -> InstagramT m (Envelope (Maybe Media))
 getMedia mid token  =getGetEnvelopeM ["/v1/media/",mid] token ([]::HT.Query)
@@ -28,7 +27,7 @@ getMedia mid token  =getGetEnvelopeM ["/v1/media/",mid] token ([]::HT.Query)
 getPopularMedia ::     (MonadBaseControl IO m, MonadResource m) =>
   Maybe OAuthToken
   -> InstagramT m (Envelope [Media])
-getPopularMedia token  =getGetEnvelopeM ["/v1/media/popular"] token ([]::HT.Query)  
+getPopularMedia token  =getGetEnvelopeM ["/v1/media/popular"] token ([]::HT.Query)
 
 -- | Parameters for call to media search
 data MediaSearchParams = MediaSearchParams {
@@ -39,23 +38,22 @@ data MediaSearchParams = MediaSearchParams {
     ,mspMinTimestamp :: Maybe POSIXTime
   }
   deriving (Show,Typeable)
-  
+
 instance Default MediaSearchParams where
   def=MediaSearchParams Nothing Nothing Nothing Nothing Nothing
-  
+
 instance HT.QueryLike MediaSearchParams where
-  toQuery (MediaSearchParams lat long dis maxT minT )=filter (isJust .snd) 
+  toQuery (MediaSearchParams lat long dis maxT minT )=filter (isJust .snd)
     ["lat" ?+ lat
     ,"lng" ?+ long
     ,"distance" ?+ dis
     ,"max_timestamp" ?+ maxT
     ,"min_timestamp" ?+ minT
    ]
-    
+
 -- | Search for media in a given area.
 searchMedia :: (MonadBaseControl IO m, MonadResource m) =>
   Maybe OAuthToken
   -> MediaSearchParams
   -> InstagramT m (Envelope [Media])
 searchMedia =getGetEnvelopeM ["/v1/media/search"]
-  

@@ -31,6 +31,9 @@ flag debug
   default: False
   description: Print debugging info.
 
+flag conduit11
+  description: Use conduit >= 1.1.
+
 library
   hs-source-dirs: src
   ghc-options: -Wall
@@ -38,27 +41,33 @@ library
     Instagram
 --  other-modules:
   build-depends:
-     base                 >= 4       && < 5
-     , bytestring           >= 0.9     && < 0.11
-     , text                 == 0.11.*
-     , transformers         >= 0.2     && < 0.4
-     , transformers-base
-     , monad-control
-     , resourcet
-     , conduit              == 1.0.*
-     , http-types
-     , http-conduit         == 1.9.*
-     , attoparsec           == 0.10.*
-     , attoparsec-conduit   == 1.0.*
-     , aeson                >= 0.5     && < 0.7,
-     time,
-     data-default,
-     lifted-base,
-     unordered-containers
-    , crypto-api >= 0.11 && < 0.13
-    , cryptohash >= 0.7
+      base                 >= 4       && < 5
+    , bytestring           >= 0.9     && < 0.11
+    , text                 >= 0.11
+    , transformers         >= 0.2     && < 0.4
+    , transformers-base
+    , monad-control
+    , resourcet
+    , http-types
+    , http-conduit         >= 2.0     && < 2.2
+    , attoparsec           >= 0.10    && < 0.12
+    , aeson                >= 0.5
+    , time
+    , data-default
+    , lifted-base
+    , unordered-containers
+    , crypto-api           >= 0.11    && < 0.14
+    , cryptohash           >= 0.7
     , cryptohash-cryptoapi == 0.1.*
     , base16-bytestring    >= 0.1
+  if flag(conduit11)
+    build-depends:
+        conduit              == 1.1.*
+      , conduit-extra        == 1.1.*
+  else
+    build-depends:
+        conduit              == 1.0.*
+      , attoparsec-conduit   == 1.0.*
   extensions:
     OverloadedStrings
     DeriveDataTypeable

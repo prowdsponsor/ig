@@ -9,9 +9,8 @@ module Instagram.Geographies (
 import Instagram.Monad
 import Instagram.Types
 
-import qualified Network.HTTP.Types as HT 
+import qualified Network.HTTP.Types as HT
 import qualified Data.Text as T (Text)
-import Data.Conduit
 import Data.Default
 import Data.Typeable
 import Data.Maybe (isJust)
@@ -22,12 +21,12 @@ data GeographyMediaParams = GeographyMediaParams {
     ,gmpMinId :: Maybe T.Text
   }
   deriving (Show,Typeable)
-  
+
 instance Default GeographyMediaParams where
   def=GeographyMediaParams Nothing Nothing
-  
+
 instance HT.QueryLike GeographyMediaParams where
-  toQuery (GeographyMediaParams cnt minI)=filter (isJust .snd) 
+  toQuery (GeographyMediaParams cnt minI)=filter (isJust .snd)
     ["count" ?+ cnt
     ,"min_id" ?+ minI   ]
 

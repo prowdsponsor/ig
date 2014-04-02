@@ -10,25 +10,24 @@ module Instagram.Comments (
 import Instagram.Monad
 import Instagram.Types
 
-import Data.Conduit
 import qualified Network.HTTP.Types as HT
 import Data.Text (Text)
 
 -- | Get a full list of comments on a media.
-getComments ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
+getComments ::     (MonadBaseControl IO m, MonadResource m) => MediaID
   -> Maybe OAuthToken
   -> InstagramT m (Envelope [Comment])
 getComments mid token  =getGetEnvelopeM ["/v1/media/",mid,"/comments"] token ([]::HT.Query)
 
 -- | Create a comment on a media.
-postComment ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
+postComment ::     (MonadBaseControl IO m, MonadResource m) => MediaID
   -> OAuthToken
   -> Text
   -> InstagramT m (Envelope NoResult)
 postComment mid token txt =getPostEnvelope ["/v1/media/",mid,"/comments"] token ["text" ?+ txt]
 
 -- | Remove a comment either on the authenticated user's media or authored by the authenticated user.
-deleteComment ::     (MonadBaseControl IO m, MonadResource m) => MediaID 
+deleteComment ::     (MonadBaseControl IO m, MonadResource m) => MediaID
   -> CommentID
   -> OAuthToken
   -> InstagramT m (Envelope NoResult)

@@ -12,16 +12,15 @@ module Instagram.Locations (
 import Instagram.Monad
 import Instagram.Types
 
-import qualified Network.HTTP.Types as HT 
+import qualified Network.HTTP.Types as HT
 import Data.Time.Clock.POSIX (POSIXTime)
 import qualified Data.Text as T (Text)
-import Data.Conduit
 import Data.Typeable
 import Data.Default
 import Data.Maybe (isJust)
 
 
--- | Get information about a location. 
+-- | Get information about a location.
 getLocation :: (MonadBaseControl IO m, MonadResource m) =>
   LocationID
   -> Maybe OAuthToken
@@ -37,18 +36,18 @@ data LocationMediaParams = LocationMediaParams {
     lmspMinId :: Maybe T.Text
   }
   deriving (Show,Typeable)
-  
+
 instance Default LocationMediaParams where
   def=LocationMediaParams Nothing Nothing Nothing Nothing
-  
+
 instance HT.QueryLike LocationMediaParams where
-  toQuery (LocationMediaParams maxT minT maxI minI)=filter (isJust .snd) 
+  toQuery (LocationMediaParams maxT minT maxI minI)=filter (isJust .snd)
     ["max_timestamp" ?+ maxT
     ,"min_timestamp" ?+ minT
     ,"max_id" ?+ maxI
     ,"min_id" ?+ minI   ]
 
--- | Get a list of recent media objects from a given location. 
+-- | Get a list of recent media objects from a given location.
 getLocationRecentMedia ::  (MonadBaseControl IO m, MonadResource m) =>
   LocationID
   -> Maybe OAuthToken
@@ -66,12 +65,12 @@ data LocationSearchParams = LocationSearchParams {
     ,lspFoursquareID :: Maybe T.Text
   }
   deriving (Show,Typeable)
-  
+
 instance Default LocationSearchParams where
   def=LocationSearchParams Nothing Nothing Nothing Nothing Nothing
-  
+
 instance HT.QueryLike LocationSearchParams where
-  toQuery (LocationSearchParams lat long dis fsidV2 fsid )=filter (isJust .snd) 
+  toQuery (LocationSearchParams lat long dis fsidV2 fsid )=filter (isJust .snd)
     ["lat" ?+ lat
     ,"lng" ?+ long
     ,"distance" ?+ dis
@@ -79,7 +78,7 @@ instance HT.QueryLike LocationSearchParams where
     ,"foursquare_id" ?+ fsid
    ]
 
--- | Search for a location by geographic coordinate. 
+-- | Search for a location by geographic coordinate.
 searchLocations ::  (MonadBaseControl IO m, MonadResource m) =>
    Maybe OAuthToken
   -> LocationSearchParams

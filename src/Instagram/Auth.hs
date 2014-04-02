@@ -16,13 +16,12 @@ import qualified Data.ByteString as BS (ByteString,intercalate)
 import qualified Data.Text.Encoding as TE
 import qualified Network.HTTP.Types as HT
 
-import Data.Conduit
 
 -- | the URI to redirect the user after she accepts/refuses to authorize the app
 type RedirectUri = Text
 
 -- | get the authorize url to redirect your user to
-getUserAccessTokenURL1 :: Monad m => 
+getUserAccessTokenURL1 :: Monad m =>
   RedirectUri -- ^ the URI to redirect the user after she accepts/refuses to authorize the app
   -> [Scope] -- ^ the requested scopes (can be empty for Basic)
   -> InstagramT m Text -- ^ the URL to redirect the user to
@@ -37,19 +36,16 @@ getUserAccessTokenURL1 url scopes=  do
     buildScopes ::  [Scope] ->  HT.SimpleQuery
     buildScopes []=[]
     buildScopes l =[("scope",BS.intercalate "+" $ map (TE.encodeUtf8 . toLower . pack . show) l)]
-                
+
 -- | second step of authorization: get the access token once the user has been redirected with a code
 getUserAccessTokenURL2 :: (MonadBaseControl IO m, MonadResource m) =>
   RedirectUri -- ^ the redirect uri
   -> Text -- ^ the code sent back to your app
   -> InstagramT m OAuthToken -- ^ the auth token
-getUserAccessTokenURL2 url code= 
+getUserAccessTokenURL2 url code=
   addClientInfos buildQuery >>= getPostRequest "/oauth/access_token" >>= getJSONResponse
   where
     -- | build query parameters
     buildQuery ::  HT.SimpleQuery
     buildQuery =[("redirect_uri",TE.encodeUtf8 url),("grant_type","authorization_code"),
         ("code",TE.encodeUtf8 code)]
-     
-     
-     
