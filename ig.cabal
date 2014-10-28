@@ -50,7 +50,7 @@ library
     , resourcet
     , http-types
     , http-conduit         >= 2.0     && < 2.2
-    , attoparsec           >= 0.10    && < 0.12
+    , attoparsec           >= 0.10    && < 0.13
     , aeson                >= 0.5
     , time
     , data-default
