@@ -8,6 +8,7 @@ module Instagram.Types (
   ,AccessToken(..)
   ,UserID
   ,User(..)
+  ,Counts(..)
   ,Scope(..)
   ,IGException(..)
   ,Envelope(..)
@@ -110,30 +111,42 @@ data User = User {
         uFullName :: Text,
         uProfilePicture :: Maybe Text,
         uWebsite :: Maybe Text,
-        uMediaCount :: Integer,
-        uFollowsCount :: Integer,
-        uFollowedByCount :: Integer
-        }
-        deriving (Show,Read,Eq,Ord,Typeable)
+        uCounts :: Maybe Counts
+      } deriving (Show,Read,Eq,Ord,Typeable)
 
 -- | to json as per Instagram format
 instance ToJSON User  where
-    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u, "website" .= uWebsite u, "counts" .= object ["media" .= uMediaCount u, "follows" .= uFollowsCount u, "followed_by" .= uFollowedByCount u]]
+    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u, "website" .= uWebsite u, "counts" .= uCounts u]
 
 -- | from json as per Instagram format
 instance FromJSON User where
-    parseJSON (Object v) = do
-      counts <- v .: "counts"
+    parseJSON (Object v) =
       User
         <$> v .: "id"
         <*> v .: "username"
         <*> v .: "full_name"
         <*> v .:? "profile_picture"
         <*> v .:? "website"
-        <*> counts .: "media"
-        <*> counts .: "follows"
-        <*> counts .: "followed_by"
+        <*> v .:? "counts"
     parseJSON _= fail "User"
+
+data Counts = Counts {
+    ctMedia :: Int,
+    ctFollows :: Int,
+    ctFollowedBy :: Int
+  } deriving (Show,Read,Eq,Ord,Typeable)
+
+instance FromJSON Counts where
+    parseJSON (Object v) =
+      Counts
+        <$> v .: "media"
+        <*> v .: "follows"
+        <*> v .: "followed_by"
+    parseJSON _= fail "Counts"
+
+instance ToJSON Counts where
+  toJSON ct = object ["media" .= ctMedia ct, "follows" .= ctFollows ct, "followed_by" .= ctFollowedBy ct]
+
 
 -- | the scopes of the authentication
 data Scope=Basic | Comments | Relationships | Likes

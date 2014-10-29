@@ -15,8 +15,9 @@ module Instagram
   ,OAuthToken(..)
   ,AccessToken(..) -- we open this type so that the api client can just use the token data outside of your type (as a simple Text)
   ,User(..)
+  ,Counts(..)
   ,Scope(..)
-  
+
   -- data
   ,Envelope(..)
   ,Pagination(..)
@@ -29,7 +30,7 @@ module Instagram
   ,Comment(..)
   ,Collection(..)
   ,NoResult
-  
+
   -- user
   ,UserID
   ,getUser
@@ -41,7 +42,7 @@ module Instagram
   ,getSelfLiked
   ,UserSearchParams(..)
   ,searchUsers
-  
+
   -- real time
   ,Aspect -- do not export constructor since only media is supported
   ,media
@@ -55,7 +56,7 @@ module Instagram
   ,DeletionParams(..)
   ,Update(..)
   ,verifySignature
-    
+
   -- Tags
   ,Tag(..)
   ,TagName
@@ -63,7 +64,7 @@ module Instagram
   ,RecentTagParams(..)
   ,getRecentTagged
   ,searchTags
-  
+
   -- relationships
    ,OutgoingStatus(..)
   ,IncomingStatus(..)
@@ -74,25 +75,25 @@ module Instagram
   ,getRelationship
   ,setRelationShip
   ,RelationShipAction(..)
-  
+
   -- media
   ,MediaID
   ,getMedia
   ,getPopularMedia
   ,MediaSearchParams(..)
   ,searchMedia
-  
+
   -- comments
   ,CommentID
   ,getComments
   ,postComment
   ,deleteComment
-  
+
   -- likes
   ,getLikes
   ,like
   ,unlike
-  
+
   -- locations
   ,LocationID
   ,getLocation
@@ -100,7 +101,7 @@ module Instagram
   ,getLocationRecentMedia
   ,LocationSearchParams(..)
   ,searchLocations
-  
+
   -- geographies
   ,GeographyID
   ,GeographyMediaParams(..)
@@ -132,5 +133,3 @@ import Instagram.Users
 --  let d=eitherDecode t
 --  print (d::Either String (Envelope [Media]))
 --  return()
-  
-  
