@@ -43,6 +43,7 @@ module Instagram.Types (
 import Control.Applicative
 import Data.Text
 import Data.Typeable (Typeable)
+import Data.Data (Data)
 import Data.ByteString (ByteString)
 
 import Data.Aeson
@@ -60,7 +61,7 @@ data Credentials = Credentials {
   cClientID :: Text -- ^ client id
   ,cClientSecret :: Text -- ^ client secret
   }
-  deriving (Show,Read,Eq,Ord,Typeable)
+  deriving (Show,Read,Eq,Ord,Typeable, Data)
 
 -- | get client id in ByteString form
 clientIDBS :: Credentials -> ByteString
