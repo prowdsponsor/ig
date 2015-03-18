@@ -5,7 +5,8 @@ module Instagram
   InstagramT
   ,runInstagramT
   ,runResourceInIs
-  ,IGException
+  ,IGException(..)
+  ,IGError(..)
 
   -- authentication
   ,RedirectUri
