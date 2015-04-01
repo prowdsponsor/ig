@@ -112,12 +112,13 @@ data User = User {
         uFullName :: Text,
         uProfilePicture :: Maybe Text,
         uWebsite :: Maybe Text,
-        uCounts :: Maybe Counts
+        uCounts :: Maybe Counts,
+        uBio :: Maybe Text
       } deriving (Show,Read,Eq,Ord,Typeable)
 
 -- | to json as per Instagram format
 instance ToJSON User  where
-    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u, "website" .= uWebsite u, "counts" .= uCounts u]
+    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u, "website" .= uWebsite u, "counts" .= uCounts u, "bio" .= uBio u]
 
 -- | from json as per Instagram format
 instance FromJSON User where
@@ -129,6 +130,7 @@ instance FromJSON User where
         <*> v .:? "profile_picture"
         <*> v .:? "website"
         <*> v .:? "counts"
+        <*> v .:? "bio"
     parseJSON _= fail "User"
 
 data Counts = Counts {
