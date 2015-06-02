@@ -361,7 +361,7 @@ instance FromJSON Location where
       parseID :: Object -> Parser (Maybe LocationID)
       parseID obj=case HM.lookup "id" obj of
         Just (String s)->pure $ Just s
-        Just (Number n)->pure $ Just $ T.pack $ show n
+        Just (Number n)->pure $ Just $ T.pack $ show $ (round n :: Int)
         Nothing->pure Nothing
         _->fail "LocationID"
   parseJSON _= fail "Location"
