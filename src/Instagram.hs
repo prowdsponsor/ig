@@ -92,6 +92,7 @@ module Instagram
 
   -- likes
   ,getLikes
+  , getLikesMaxId
   ,like
   ,unlike
 
