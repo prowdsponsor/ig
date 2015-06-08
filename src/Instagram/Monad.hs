@@ -41,6 +41,9 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans(lift))
 import Control.Monad.Trans.Control ( MonadTransControl(..), MonadBaseControl(..)
                                    , ComposeSt, defaultLiftBaseWith
+#if MIN_VERSION_monad_control(1,0,0)
+                                   , defaultLiftWith, defaultRestoreT
+#endif
                                    , defaultRestoreM )
 import Control.Monad.Trans.Reader (ReaderT(..), ask, mapReaderT)
 import Data.Default (def)
@@ -79,6 +82,17 @@ deriving instance R.MonadResource m => R.MonadResource (InstagramT m)
 instance MonadBase b m => MonadBase b (InstagramT m) where
     liftBase = lift . liftBase
 
+#if MIN_VERSION_monad_control(1,0,0)
+instance MonadTransControl InstagramT where
+    type StT InstagramT a = StT (ReaderT IsData) a
+    liftWith = defaultLiftWith Is unIs
+    restoreT = defaultRestoreT Is
+
+instance MonadBaseControl b m => MonadBaseControl b (InstagramT m) where
+    type StM (InstagramT m) a = ComposeSt InstagramT m a
+    liftBaseWith = defaultLiftBaseWith
+    restoreM = defaultRestoreM
+#else
 instance MonadTransControl InstagramT where
     newtype StT InstagramT a = FbStT { unFbStT :: StT (ReaderT IsData) a }
     liftWith f = Is $ liftWith (\run -> f (liftM FbStT . run . unIs))
@@ -88,6 +102,7 @@ instance MonadBaseControl b m => MonadBaseControl b (InstagramT m) where
     newtype StM (InstagramT m) a = StMT {unStMT :: ComposeSt InstagramT m a}
     liftBaseWith = defaultLiftBaseWith StMT
     restoreM = defaultRestoreM unStMT
+#endif
 
 -- | Run a computation in the 'InstagramT' monad transformer with
 -- your credentials.
