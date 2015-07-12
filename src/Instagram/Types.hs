@@ -8,6 +8,7 @@ module Instagram.Types (
   ,AccessToken(..)
   ,UserID
   ,User(..)
+  ,UserCounts(..)
   ,Scope(..)
   ,IGException(..)
   ,Envelope(..)
@@ -109,13 +110,22 @@ data User = User {
         uUsername :: Text,
         uFullName :: Text,
         uProfilePicture :: Maybe Text,
-        uWebsite :: Maybe Text
-        }        
+        uWebsite :: Maybe Text,
+        uBio :: Maybe Text,
+        uCounts :: Maybe UserCounts
+        }
         deriving (Show,Read,Eq,Ord,Typeable)
     
 -- | to json as per Instagram format    
 instance ToJSON User  where
-    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u, "website" .= uWebsite u] 
+    toJSON u = object
+        [ "id" .= uID u
+        , "username" .= uUsername u
+        , "full_name" .= uFullName u
+        , "profile_picture" .= uProfilePicture u
+        , "website" .= uWebsite u
+        , "bio" .= uBio u
+        ]
 
 -- | from json as per Instagram format
 instance FromJSON User where
@@ -124,9 +134,35 @@ instance FromJSON User where
                          v .: "username" <*>
                          v .: "full_name" <*>
                          v .:? "profile_picture" <*>
-                         v .:? "website"
+                         v .:? "website" <*>
+                         v .:? "bio" <*>
+                         v .:? "counts"
     parseJSON _= fail "User"
-    
+
+-- | the User counts info returned by some endpoints
+data UserCounts = UserCounts
+    { ucMedia :: Int
+    , ucFollows :: Int
+    , ucFollowedBy :: Int
+    }
+    deriving (Show,Read,Eq,Ord,Typeable)
+
+-- | from json as per Instagram format
+instance FromJSON UserCounts where
+    parseJSON (Object v) = UserCounts <$>
+                         v .: "media" <*>
+                         v .: "follows" <*>
+                         v .: "followed_by"
+    parseJSON _= fail "UserCounts"
+
+-- | to json as per Instagram format
+instance ToJSON UserCounts where
+    toJSON uc = object
+        [ "media" .= ucMedia uc
+        , "follows" .= ucFollows uc
+        , "followed_by" .= ucFollowedBy uc
+        ]
+
 -- | the scopes of the authentication
 data Scope=Basic | Comments | Relationships | Likes
         deriving (Show,Read,Eq,Ord,Enum,Bounded,Typeable)
