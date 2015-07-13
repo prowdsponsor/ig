@@ -15,6 +15,7 @@ module Instagram
   ,OAuthToken(..)
   ,AccessToken(..) -- we open this type so that the api client can just use the token data outside of your type (as a simple Text)
   ,User(..)
+  ,UserCounts(..)
   ,Scope(..)
   
   -- data
