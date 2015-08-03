@@ -20,6 +20,7 @@ module Instagram
   
   -- data
   ,Envelope(..)
+  ,getNextPage
   ,Pagination(..)
   ,Media(..)
   ,Position(..)
@@ -71,6 +72,9 @@ module Instagram
   ,Relationship(..)
   ,getFollows
   ,getFollowedBy
+  ,FollowParams(..)
+  ,getFollowsParams
+  ,getFollowedByParams
   ,getRequestedBy
   ,getRelationship
   ,setRelationShip
