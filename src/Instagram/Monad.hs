@@ -19,6 +19,7 @@ module Instagram.Monad (
   ,getPostEnvelopeM
   ,getDeleteEnvelope
   ,getDeleteEnvelopeM
+  ,getNextPage
   ,getManager
   ,runResourceInIs
   ,mapInstagramT
@@ -61,7 +62,7 @@ import Data.Aeson (json,fromJSON,Result(..),FromJSON)
 import Data.Conduit.Attoparsec (sinkParser, ParseError)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
-import qualified Data.Text as T (Text,concat)
+import qualified Data.Text as T (Text,concat, unpack)
 import Data.Time.Clock.POSIX (POSIXTime)
 
 #if DEBUG
@@ -283,6 +284,22 @@ getEnvelopeM :: (MonadBaseControl IO m, R.MonadResource m,HT.QueryLike ql,FromJS
 getEnvelopeM f urlComponents token ql=do
    let url=TE.encodeUtf8 $ T.concat urlComponents
    addTokenM token ql >>= f url >>= getJSONEnvelope
+
+-- | Use the pagination links in an 'Envelope' to fetch the next page of
+-- results.
+--
+-- If the Envelope has no pagination, or we have reached the final page
+-- (indicated by the pNextUrl field being missing), returns Nothing.
+getNextPage :: (MonadBaseControl IO m, R.MonadResource m, FromJSON v)
+            => Envelope v
+            -> InstagramT m (Maybe (Envelope v))
+getNextPage e = case maybeRequest of
+    Nothing -> return Nothing
+    Just req -> Just <$> getJSONEnvelope req
+  where
+    maybeRequest = do  -- Maybe monad
+        nextUrl <- pNextUrl =<< ePagination e
+        H.parseUrl $ T.unpack nextUrl
 
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager

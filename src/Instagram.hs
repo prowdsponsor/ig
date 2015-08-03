@@ -20,6 +20,7 @@ module Instagram
   
   -- data
   ,Envelope(..)
+  ,getNextPage
   ,Pagination(..)
   ,Media(..)
   ,Position(..)
