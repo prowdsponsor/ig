@@ -72,6 +72,9 @@ module Instagram
   ,Relationship(..)
   ,getFollows
   ,getFollowedBy
+  ,FollowParams(..)
+  ,getFollowsParams
+  ,getFollowedByParams
   ,getRequestedBy
   ,getRelationship
   ,setRelationShip
