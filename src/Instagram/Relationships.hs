@@ -87,5 +87,5 @@ instance HT.QueryLike RelationShipAction where
 setRelationShip :: (MonadBaseControl IO m, MonadResource m) => UserID
   -> OAuthToken
   -> RelationShipAction
-  -> InstagramT m (Envelope Relationship)
+  -> InstagramT m (Envelope (Maybe Relationship))
 setRelationShip uid=getPostEnvelope ["/v1/users/",uid,"/relationship"]
