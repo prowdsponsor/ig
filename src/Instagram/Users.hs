@@ -85,10 +85,10 @@ instance HT.QueryLike RecentParams where
 -- | Get the most recent media published by a user.
 getRecent :: (MonadBaseControl IO m, MonadResource m)
           => UserID
-          -> OAuthToken
+          -> Maybe OAuthToken
           -> RecentParams
           -> InstagramT m (Envelope [Media])
-getRecent uid = getGetEnvelope ["/v1/users/",uid,"/media/recent/"]
+getRecent uid = getGetEnvelopeM ["/v1/users/",uid,"/media/recent/"]
 
 -- | parameters for self liked call
 data SelfLikedParams = SelfLikedParams {
