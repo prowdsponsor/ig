@@ -13,7 +13,7 @@ module Instagram.Types (
   ,IGException(..)
   ,Envelope(..)
   ,ErrEnvelope(..)
-  ,IGError
+  ,IGError(..)
   ,Pagination(..)
   ,MediaID
   ,Media(..)
