@@ -4,10 +4,13 @@
 module Instagram.Relationships (
   getFollows
   ,getFollowedBy
+  ,getFollowsParams
+  ,getFollowedByParams
   ,getRequestedBy
   ,getRelationship
   ,setRelationShip
   ,RelationShipAction(..)
+  ,FollowParams(..)
 )where
 
 import Instagram.Monad
@@ -35,6 +38,30 @@ getFollowedBy uid Nothing token  =getGetEnvelopeM ["/v1/users/",uid,"/followed-b
 getFollowedBy uid (Just count) token  =getGetEnvelopeM ["/v1/users/",uid,"/followed-by"]
                                                        token
                                                        ([("count", Just $ fromString $ show count)]::HT.Query)
+
+data FollowParams = FollowParams {
+    fpCount :: Int
+    } deriving (Show, Read, Eq, Ord)
+
+instance HT.QueryLike FollowParams where
+  toQuery FollowParams{fpCount=count} =
+    ["count" ?+ show count]
+
+-- | Get the list of users this user follows.
+getFollowsParams :: (MonadBaseControl IO m, MonadResource m) => UserID
+  -> Maybe OAuthToken
+  -> FollowParams
+  -> InstagramT m (Envelope [User])
+getFollowsParams uid token fp =
+  getGetEnvelopeM ["/v1/users/",uid,"/follows"] token fp
+
+-- | Get the list of users this user is followed by.
+getFollowedByParams :: (MonadBaseControl IO m, MonadResource m) => UserID
+  -> Maybe OAuthToken
+  -> FollowParams
+  -> InstagramT m (Envelope [User])
+getFollowedByParams uid token fp =
+  getGetEnvelopeM ["/v1/users/",uid,"/followed-by"] token fp
 
 -- | List the users who have requested this user's permission to follow.
 getRequestedBy ::     (MonadBaseControl IO m, MonadResource m) =>
@@ -65,5 +92,5 @@ instance HT.QueryLike RelationShipAction where
 setRelationShip :: (MonadBaseControl IO m, MonadResource m) => UserID
   -> OAuthToken
   -> RelationShipAction
-  -> InstagramT m (Envelope Relationship)
+  -> InstagramT m (Envelope (Maybe Relationship))
 setRelationShip uid=getPostEnvelope ["/v1/users/",uid,"/relationship"]

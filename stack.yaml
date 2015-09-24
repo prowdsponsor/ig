@@ -1,0 +1,8 @@
+flags:
+  ig:
+    debug: false
+    conduit11: true
+packages:
+- '.'
+extra-deps: []
+resolver: lts-3.2

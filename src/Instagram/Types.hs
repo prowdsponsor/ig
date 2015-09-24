@@ -8,7 +8,7 @@ module Instagram.Types (
   ,AccessToken(..)
   ,UserID
   ,User(..)
-  ,Counts(..)
+  ,UserCounts(..)
   ,Scope(..)
   ,IGException(..)
   ,Envelope(..)
@@ -112,44 +112,58 @@ data User = User {
         uFullName :: Text,
         uProfilePicture :: Maybe Text,
         uWebsite :: Maybe Text,
-        uCounts :: Maybe Counts,
-        uBio :: Maybe Text
-      } deriving (Show,Read,Eq,Ord,Typeable)
+        uBio :: Maybe Text,
+        uCounts :: Maybe UserCounts
+        }
+        deriving (Show,Read,Eq,Ord,Typeable)
 
 -- | to json as per Instagram format
 instance ToJSON User  where
-    toJSON u=object ["id" .= uID u, "username" .= uUsername u , "full_name" .= uFullName u, "profile_picture" .= uProfilePicture u, "website" .= uWebsite u, "counts" .= uCounts u, "bio" .= uBio u]
+    toJSON u = object
+        [ "id" .= uID u
+        , "username" .= uUsername u
+        , "full_name" .= uFullName u
+        , "profile_picture" .= uProfilePicture u
+        , "website" .= uWebsite u
+        , "bio" .= uBio u
+        , "counts" .= uCounts u 
+        ]
 
 -- | from json as per Instagram format
 instance FromJSON User where
-    parseJSON (Object v) =
-      User
-        <$> v .: "id"
-        <*> v .: "username"
-        <*> v .: "full_name"
-        <*> v .:? "profile_picture"
-        <*> v .:? "website"
-        <*> v .:? "counts"
-        <*> v .:? "bio"
+    parseJSON (Object v) =User <$>
+                         v .: "id" <*>
+                         v .: "username" <*>
+                         v .: "full_name" <*>
+                         v .:? "profile_picture" <*>
+                         v .:? "website" <*>
+                         v .:? "bio" <*>
+                         v .:? "counts"
     parseJSON _= fail "User"
 
-data Counts = Counts {
-    ctMedia :: Int,
-    ctFollows :: Int,
-    ctFollowedBy :: Int
-  } deriving (Show,Read,Eq,Ord,Typeable)
+-- | the User counts info returned by some endpoints
+data UserCounts = UserCounts
+    { ucMedia :: Int
+    , ucFollows :: Int
+    , ucFollowedBy :: Int
+    }
+    deriving (Show,Read,Eq,Ord,Typeable)
 
-instance FromJSON Counts where
-    parseJSON (Object v) =
-      Counts
-        <$> v .: "media"
-        <*> v .: "follows"
-        <*> v .: "followed_by"
-    parseJSON _= fail "Counts"
+-- | from json as per Instagram format
+instance FromJSON UserCounts where
+    parseJSON (Object v) = UserCounts <$>
+                         v .: "media" <*>
+                         v .: "follows" <*>
+                         v .: "followed_by"
+    parseJSON _= fail "UserCounts"
 
-instance ToJSON Counts where
-  toJSON ct = object ["media" .= ctMedia ct, "follows" .= ctFollows ct, "followed_by" .= ctFollowedBy ct]
-
+-- | to json as per Instagram format
+instance ToJSON UserCounts where
+    toJSON uc = object
+        [ "media" .= ucMedia uc
+        , "follows" .= ucFollows uc
+        , "followed_by" .= ucFollowedBy uc
+        ]
 
 -- | the scopes of the authentication
 data Scope=Basic | Comments | Relationships | Likes

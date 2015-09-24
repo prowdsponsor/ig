@@ -19,6 +19,7 @@ module Instagram.Monad (
   ,getPostEnvelopeM
   ,getDeleteEnvelope
   ,getDeleteEnvelopeM
+  ,getNextPage
   ,getManager
   ,runResourceInIs
   ,mapInstagramT
@@ -41,6 +42,9 @@ import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Trans.Class (MonadTrans(lift))
 import Control.Monad.Trans.Control ( MonadTransControl(..), MonadBaseControl(..)
                                    , ComposeSt, defaultLiftBaseWith
+#if MIN_VERSION_monad_control(1,0,0)
+                                   , defaultLiftWith, defaultRestoreT
+#endif
                                    , defaultRestoreM )
 import Control.Monad.Trans.Reader (ReaderT(..), ask, mapReaderT)
 import Data.Default (def)
@@ -58,7 +62,7 @@ import Data.Aeson (json,fromJSON,Result(..),FromJSON)
 import Data.Conduit.Attoparsec (sinkParser, ParseError)
 import Control.Exception.Base (throw)
 import qualified Data.Text.Encoding as TE
-import qualified Data.Text as T (Text,concat)
+import qualified Data.Text as T (Text,concat, unpack)
 import Data.Time.Clock.POSIX (POSIXTime)
 
 #if DEBUG
@@ -79,6 +83,17 @@ deriving instance R.MonadResource m => R.MonadResource (InstagramT m)
 instance MonadBase b m => MonadBase b (InstagramT m) where
     liftBase = lift . liftBase
 
+#if MIN_VERSION_monad_control(1,0,0)
+instance MonadTransControl InstagramT where
+    type StT InstagramT a = StT (ReaderT IsData) a
+    liftWith = defaultLiftWith Is unIs
+    restoreT = defaultRestoreT Is
+
+instance MonadBaseControl b m => MonadBaseControl b (InstagramT m) where
+    type StM (InstagramT m) a = ComposeSt InstagramT m a
+    liftBaseWith = defaultLiftBaseWith
+    restoreM = defaultRestoreM
+#else
 instance MonadTransControl InstagramT where
     newtype StT InstagramT a = FbStT { unFbStT :: StT (ReaderT IsData) a }
     liftWith f = Is $ liftWith (\run -> f (liftM FbStT . run . unIs))
@@ -88,6 +103,7 @@ instance MonadBaseControl b m => MonadBaseControl b (InstagramT m) where
     newtype StM (InstagramT m) a = StMT {unStMT :: ComposeSt InstagramT m a}
     liftBaseWith = defaultLiftBaseWith StMT
     restoreM = defaultRestoreM unStMT
+#endif
 
 -- | Run a computation in the 'InstagramT' monad transformer with
 -- your credentials.
@@ -268,6 +284,22 @@ getEnvelopeM :: (MonadBaseControl IO m, R.MonadResource m,HT.QueryLike ql,FromJS
 getEnvelopeM f urlComponents token ql=do
    let url=TE.encodeUtf8 $ T.concat urlComponents
    addTokenM token ql >>= f url >>= getJSONEnvelope
+
+-- | Use the pagination links in an 'Envelope' to fetch the next page of
+-- results.
+--
+-- If the Envelope has no pagination, or we have reached the final page
+-- (indicated by the pNextUrl field being missing), returns Nothing.
+getNextPage :: (MonadBaseControl IO m, R.MonadResource m, FromJSON v)
+            => Envelope v
+            -> InstagramT m (Maybe (Envelope v))
+getNextPage e = case maybeRequest of
+    Nothing -> return Nothing
+    Just req -> Just <$> getJSONEnvelope req
+  where
+    maybeRequest = do  -- Maybe monad
+        nextUrl <- pNextUrl =<< ePagination e
+        H.parseUrl $ T.unpack nextUrl
 
 -- | Get the 'H.Manager'.
 getManager :: Monad m => InstagramT m H.Manager

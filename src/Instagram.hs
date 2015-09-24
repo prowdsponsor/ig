@@ -16,11 +16,12 @@ module Instagram
   ,OAuthToken(..)
   ,AccessToken(..) -- we open this type so that the api client can just use the token data outside of your type (as a simple Text)
   ,User(..)
-  ,Counts(..)
+  ,UserCounts(..)
   ,Scope(..)
 
   -- data
   ,Envelope(..)
+  ,getNextPage
   ,Pagination(..)
   ,Media(..)
   ,Position(..)
@@ -72,6 +73,9 @@ module Instagram
   ,Relationship(..)
   ,getFollows
   ,getFollowedBy
+  ,FollowParams(..)
+  ,getFollowsParams
+  ,getFollowedByParams
   ,getRequestedBy
   ,getRelationship
   ,setRelationShip
