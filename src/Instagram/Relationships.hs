@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, OverloadedStrings #-}
 -- | relationship handling
 -- <http://instagram.com/developer/endpoints/relationships/#>
 module Instagram.Relationships (
@@ -17,6 +17,7 @@ import Instagram.Monad
 import Instagram.Types
 
 import Data.Typeable (Typeable)
+import Data.String
 
 import qualified Network.HTTP.Types as HT
 import Data.Char (toLower)
@@ -30,9 +31,13 @@ getFollows uid token  =getGetEnvelopeM ["/v1/users/",uid,"/follows"] token ([]::
 
 -- | Get the list of users this user is followed by.
 getFollowedBy ::     (MonadBaseControl IO m, MonadResource m) => UserID
+  -> Maybe Int
   -> Maybe OAuthToken
   -> InstagramT m (Envelope [User])
-getFollowedBy uid token  =getGetEnvelopeM ["/v1/users/",uid,"/followed-by"] token ([]::HT.Query)
+getFollowedBy uid Nothing token  =getGetEnvelopeM ["/v1/users/",uid,"/followed-by"] token ([]::HT.Query)
+getFollowedBy uid (Just count) token  =getGetEnvelopeM ["/v1/users/",uid,"/followed-by"]
+                                                       token
+                                                       ([("count", Just $ fromString $ show count)]::HT.Query)
 
 data FollowParams = FollowParams {
     fpCount :: Int

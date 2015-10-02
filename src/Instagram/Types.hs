@@ -43,6 +43,7 @@ module Instagram.Types (
 import Control.Applicative
 import Data.Text
 import Data.Typeable (Typeable)
+import Data.Data (Data)
 import Data.ByteString (ByteString)
 
 import Data.Aeson
@@ -60,7 +61,7 @@ data Credentials = Credentials {
   cClientID :: Text -- ^ client id
   ,cClientSecret :: Text -- ^ client secret
   }
-  deriving (Show,Read,Eq,Ord,Typeable)
+  deriving (Show,Read,Eq,Ord,Typeable, Data)
 
 -- | get client id in ByteString form
 clientIDBS :: Credentials -> ByteString
@@ -125,6 +126,7 @@ instance ToJSON User  where
         , "profile_picture" .= uProfilePicture u
         , "website" .= uWebsite u
         , "bio" .= uBio u
+        , "counts" .= uCounts u 
         ]
 
 -- | from json as per Instagram format
@@ -373,7 +375,7 @@ instance FromJSON Location where
       parseID :: Object -> Parser (Maybe LocationID)
       parseID obj=case HM.lookup "id" obj of
         Just (String s)->pure $ Just s
-        Just (Number n)->pure $ Just $ T.pack $ show n
+        Just (Number n)->pure $ Just $ T.pack $ show $ (round n :: Int)
         Nothing->pure Nothing
         _->fail "LocationID"
   parseJSON _= fail "Location"
@@ -640,4 +642,3 @@ instance FromJSON NoResult where
 
 -- | geography ID
 type GeographyID = Text
-
