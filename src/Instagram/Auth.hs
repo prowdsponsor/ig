@@ -35,7 +35,7 @@ getUserAccessTokenURL1 url scopes=  do
     buildQuery cid=[("client_id",cid),("redirect_uri",TE.encodeUtf8 url),("response_type","code")]
     buildScopes ::  [Scope] ->  HT.SimpleQuery
     buildScopes []=[]
-    buildScopes l =[("scope",BS.intercalate "+" $ map (TE.encodeUtf8 . toLower . pack . show) l)]
+    buildScopes l =[("scope",BS.intercalate "+" $ map (TE.encodeUtf8 . pack . show) l)]
 
 -- | second step of authorization: get the access token once the user has been redirected with a code
 getUserAccessTokenURL2 :: (MonadBaseControl IO m, MonadResource m) =>

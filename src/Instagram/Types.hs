@@ -166,8 +166,16 @@ instance ToJSON UserCounts where
         ]
 
 -- | the scopes of the authentication
-data Scope=Basic | Comments | Relationships | Likes
-        deriving (Show,Read,Eq,Ord,Enum,Bounded,Typeable)
+data Scope = Basic | PublicContent | FollowerList | Comments | Relationships | Likes
+  deriving (Read,Eq,Ord,Enum,Bounded,Typeable)
+
+instance Show Scope where
+  show Basic         = "basic"
+  show PublicContent = "public_content"
+  show FollowerList  = "follower_list"
+  show Comments      = "comments"
+  show Relationships = "relationships"
+  show Likes         = "likes"
 
 -- | an error returned to us by Instagram
 data IGError = IGError {
