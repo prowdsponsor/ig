@@ -196,7 +196,7 @@ igReq req extractError=do
 #if DEBUG
 #if CONDUIT11
     -- DEBUG and CONDUIT11
-    (value,_)<-H.responseBody res C.$$+- getZipSink $ (,) <$>
+    value<-H.responseBody res C.$$+- getZipSink $ const <$>
       ZipSink (sinkParser json) <*> ZipSink (sinkHandle stdout)
 #else
     -- DEBUG and not CONDUIT11
