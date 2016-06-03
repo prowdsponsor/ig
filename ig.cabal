@@ -94,3 +94,6 @@ library
                   Instagram.Geographies
   if flag(debug)
     cpp-options: -DDEBUG
+
+  if flag(conduit11)
+    cpp-options: -DCONDUIT11
