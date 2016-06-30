@@ -30,7 +30,7 @@ module Instagram
   ,ImageData(..)
   ,Images(..)
   ,Comment(..)
-  ,Collection(..)
+  ,Count(..)
   ,NoResult
 
   -- user
