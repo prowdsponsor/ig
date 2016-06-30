@@ -69,7 +69,11 @@ import Data.Time.Clock.POSIX (POSIXTime)
 import Control.Monad.IO.Class (liftIO)
 import Data.Conduit.Binary (sinkHandle)
 import System.IO (stdout)
+#if CONDUIT11
+import Data.Conduit (ZipSink(ZipSink, getZipSink))
+#else
 import Data.Conduit.Util (zipSinks)
+#endif
 #endif
 
 -- | the instagram monad transformer
@@ -190,9 +194,17 @@ igReq req extractError=do
       err=H.StatusCodeException status headers cookies
   L.catch (do
 #if DEBUG
+#if CONDUIT11
+    -- DEBUG and CONDUIT11
+    value<-H.responseBody res C.$$+- getZipSink $ const <$>
+      ZipSink (sinkParser json) <*> ZipSink (sinkHandle stdout)
+#else
+    -- DEBUG and not CONDUIT11
     (value,_)<-H.responseBody res C.$$+- zipSinks (sinkParser json) (sinkHandle stdout)
+#endif
     liftIO $ BSC.putStrLn ""
 #else
+    -- not DEBUG
     value<-H.responseBody res C.$$+- sinkParser json
 #endif
     if ok
