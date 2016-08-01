@@ -29,6 +29,7 @@ module Instagram
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
+  ,Videos(..)
   ,Comment(..)
   ,Count(..)
   ,NoResult

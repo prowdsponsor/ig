@@ -23,6 +23,7 @@ module Instagram.Types (
   ,Location(..)
   ,ImageData(..)
   ,Images(..)
+  ,Videos(..)
   ,CommentID
   ,Comment(..)
   ,Count(..)
@@ -126,7 +127,7 @@ instance ToJSON User  where
         , "profile_picture" .= uProfilePicture u
         , "website" .= uWebsite u
         , "bio" .= uBio u
-        , "counts" .= uCounts u 
+        , "counts" .= uCounts u
         ]
 
 -- | from json as per Instagram format
@@ -276,6 +277,7 @@ data Media = Media {
   ,mUser :: User
   ,mCreated :: POSIXTime
   ,mImages :: Images
+  ,mVideos :: Maybe Videos
   ,mType :: Text
   ,mUsersInPhoto :: [UserPosition]
   ,mFilter :: Maybe Text
@@ -291,7 +293,7 @@ data Media = Media {
 -- | to json as per Instagram format
 instance ToJSON Media  where
     toJSON m=object ["id" .= mID m,"caption" .= mCaption m,"user".= mUser m,"link" .= mLink m, "created_time" .= toJSON (show ((round $ mCreated m) :: Integer))
-      ,"images" .= mImages m,"type" .= mType m,"users_in_photo" .= mUsersInPhoto m, "filter" .= mFilter m,"tags" .= mTags m
+      ,"images" .= mImages m, "videos" .= mVideos m, "type" .= mType m, "users_in_photo" .= mUsersInPhoto m, "filter" .= mFilter m,"tags" .= mTags m
       ,"location" .= mLocation m,"comments" .= mComments m,"likes" .= mLikes m,"user_has_liked" .= mUserHasLiked m,"attribution" .= mAttribution m]
 
 -- | from json as per Instagram format
@@ -305,6 +307,7 @@ instance FromJSON Media where
                          v .: "user" <*>
                          pure (fromIntegral (read ct::Integer)) <*>
                          v .: "images" <*>
+                         v .:? "videos" <*>
                          v .: "type" <*>
                          v .: "users_in_photo" <*>
                          v .:? "filter" <*>
@@ -427,6 +430,26 @@ instance FromJSON Images where
     v .: "thumbnail" <*>
     v .: "standard_resolution"
   parseJSON _= fail "Images"
+
+
+type VideoData = ImageData
+-- | different images for the same media
+data Videos = Videos {
+  vLowRes :: VideoData
+  ,vStandardRes :: VideoData
+  }
+  deriving (Show,Eq,Ord,Typeable)
+
+-- | to json as per Instagram format
+instance ToJSON Videos where
+  toJSON i=object ["low_resolution" .= vLowRes i,"standard_resolution" .= vStandardRes i]
+
+-- | from json as per Instagram format
+instance FromJSON Videos where
+  parseJSON (Object v) = Videos <$>
+    v .: "low_resolution" <*>
+    v .: "standard_resolution"
+  parseJSON _= fail "Videos"
 
 -- | comment id
 type CommentID = Text
