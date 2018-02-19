@@ -35,7 +35,7 @@ module Instagram.Monad (
 import Instagram.Types
 
 import Control.Applicative
-import Control.Monad (MonadPlus, liftM)
+import Control.Monad (MonadPlus, liftM, void)
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Fix (MonadFix)
 import Control.Monad.IO.Class (MonadIO)
@@ -132,7 +132,11 @@ getPostRequest :: (Monad m,HT.QueryLike q) => ByteString -- ^ the url path
   -> InstagramT m H.Request -- ^ the properly configured request
 getPostRequest path query=do
   host<-getHost
+#if MIN_VERSION_http_conduit(2,2,0)
+  return $ H.defaultRequest {
+#else
   return $ def {
+#endif
                      H.secure=True
                      , H.host = host
                      , H.port = 443
@@ -151,7 +155,11 @@ getGetRequest path query=do
 #if DEBUG
   liftIO $ BSC.putStrLn $ BS.append path qs
 #endif
+#if MIN_VERSION_http_conduit(2,2,0)
+  return $ H.defaultRequest {
+#else
   return $ def {
+#endif
                      H.secure=True
                      , H.host = host
                      , H.port = 443
@@ -184,14 +192,22 @@ igReq :: forall b (m :: * -> *) wrappedErr .
                     -> InstagramT m b
 igReq req extractError=do
    -- we check the status ourselves
+#if MIN_VERSION_http_conduit(2,2,0)
+  let req' = req { H.checkResponse = \_ _ -> return () }
+#else
   let req' = req { H.checkStatus = \_ _ _ -> Nothing }
+#endif
   mgr<-getManager
   res<-H.http req' mgr
   let status = H.responseStatus res
       headers = H.responseHeaders res
       cookies = H.responseCookieJar res
       ok=isOkay status
+#if MIN_VERSION_http_conduit(2,2,0)
+      err=H.HttpExceptionRequest req $ H.StatusCodeException (void res) (HT.statusMessage status)
+#else
       err=H.StatusCodeException status headers cookies
+#endif
   L.catch (do
 #if DEBUG
 #if CONDUIT11
